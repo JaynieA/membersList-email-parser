@@ -84,22 +84,22 @@ def loginToEmail(host, account, folder, password):
         print("ERROR: Unable to open UNEDA mailbox ", rv)
 
 def parseRawEmailMessages(msg, data):
-    #   Get Email Subject Line
+    #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
     print('Subject Line:' ,  subjectLine)
 
+    # #Parse Subject Line for parts, condition, status
     partsInSubject = getPartNumbersFromString(subjectLine)
     print('Parts:', partsInSubject)
     conditionsInSubject = getConditionFromString(subjectLine)
     print('Conditions:', conditionsInSubject)
-
     statusInSubject = getStatusFromString(subjectLine)
     print('Status:', statusInSubject)
 
-    #   Get Email Sender's Info
+    #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
-    senderEmail = getSenderInfo(msg)[1]
     print('Sender Name:', senderName)
+    senderEmail = getSenderInfo(msg)[1]
     print('Sender Email:', senderEmail)
 
     '''

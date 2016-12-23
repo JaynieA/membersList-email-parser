@@ -69,8 +69,11 @@ def getStatus(string):
     #split string parameter into words
     for word in string.split():
         #find words that match status criteria
-        for status in ['WTB', 'RFQ', 'WTS']:
+        for status in ['WTB', 'RFQ', 'WTS', 'SELL']:
             if word.startswith(status):
+                #change 'SELL' to 'WTS'
+                if status == 'SELL':
+                    status = 'WTS'
                 #append matches to statusFound list
                 statusFound.append(status)
                 return statusFound
@@ -163,17 +166,18 @@ def parseRawEmailMessages(msg, data, emailNumber):
         "The information contained in a line of the email body"
         lineCount = 0
         #constructor
-        def __init__(self, partList, conditionList, quantityList):
+        def __init__(self, partList, conditionList, quantityList, statusList):
             self.parts = partList
             self.conditions = conditionList
             self.quantity = quantityList
+            self.status = statusList
             EmailBodyLine.lineCount += 1
         #Method
         def displayLineCount(self):
             print('Line # %d' % EmailBodyLine.lineCount)
         #Method
         def displayLineInfo(self):
-            print ('Parts:', self.parts, ', Conditions:', self.conditions, ', Quantity:', self.quantity)
+            print ('Parts:', self.parts, ', Conditions:', self.conditions, ', Quantity:', self.quantity, ', Status:', self.status)
 
 
     #For each line in the email, find the following:
@@ -197,16 +201,24 @@ def parseRawEmailMessages(msg, data, emailNumber):
             quantityInLine = quantityInLine[0]
         if len(quantityInLine) == 0:
             quantityInLine = None
+        #status
+        statusInLine = getStatus(line)
+        if statusInLine == None:
+            statusInLine = []
+        if len(statusInLine) == 1:
+            statusInLine = statusInLine[0]
+        if len(statusInLine) == 0:
+            statusInLine = None
 
         #Make an object of the findings from the line and display it
         #   concatenate a name for the object
         objName = str(emailNumber) + '.' + str(lineCounter)
         print(objName)
         # IF all lists are not empty, use constructor to make the object
-        if partInLine == None and conditionInLine == None and quantityInLine == None:
+        if partInLine == None and conditionInLine == None and quantityInLine == None and statusInLine == None:
             print('skip this line- it contains no info')
         else:
-            objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine)
+            objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine, statusInLine)
             #   call it's method displayLineInfo to display the new object's info
             objName.displayLineInfo()
 

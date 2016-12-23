@@ -36,6 +36,15 @@ def getCondition(string):
                 conditions.append(word)
     return conditions
 
+def getDateTime(tupule):
+    date_tuple = email.utils.parsedate_tz(tupule['Date'])
+    if date_tuple:
+        local_date = datetime.datetime.fromtimestamp(
+        email.utils.mktime_tz(date_tuple))
+        postDate = local_date.strftime("%m-%d-%Y")
+        postTime = local_date.strftime("%H:%M %p")
+        return postDate, postTime
+
 def getEmailBody(data):
     body = email.message_from_bytes(data[0][1])
     return body;
@@ -118,15 +127,23 @@ def parseRawEmailMessages(msg, data):
     statusInSubject = getStatus(subjectLine)
     print('Status:', statusInSubject)
     quantityInSubject = getQuantity(subjectLine)
-    print('Quantity', quantityInSubject)
+    print('Quantity:', quantityInSubject)
+
+    #Get and Print Message DATE & TIME
+    date = getDateTime(msg)[0]
+    print('Date:', date)
+    time = getDateTime(msg)[1]
+    print('Time:', time)
 
     '''
     #   Get the body of the email
     emailBody = getEmailBody(data)
     print(emailBody)
     '''
-    #Print a dividing line between each email for clarity 
+    #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
+
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

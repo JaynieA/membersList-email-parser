@@ -45,9 +45,7 @@ def getDateTime(tupule):
         postTime = local_date.strftime("%H:%M %p")
         return postDate, postTime
 
-def getEmailBody(data):
-    body = email.message_from_bytes(data[0][1])
-    return body;
+
 
 def getParts(string):
     result = []
@@ -112,7 +110,7 @@ def parseRawEmailMessages(msg, data):
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
     print('Subject Line:' ,  subjectLine)
-
+    '''
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
     print('Sender Name:', senderName)
@@ -134,16 +132,23 @@ def parseRawEmailMessages(msg, data):
     print('Date:', date)
     time = getDateTime(msg)[1]
     print('Time:', time)
-
     '''
+
     #   Get the body of the email
-    emailBody = getEmailBody(data)
+    emailBody = getEmailTextFromBody(data)
+    #Format the Text of the email:
+    #   Get rid of everything after 'Uneda Code of Conduct Policy'
+    emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
     print(emailBody)
-    '''
+
     #Print a dividing line between each email for clarity
-    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    print('END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
 
+def getEmailTextFromBody(data):
+    #parses raw email body (email message type), and returns the text content of the email as a string
+    body = email.message_from_bytes(data[0][1]).get_payload()
+    return body;
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

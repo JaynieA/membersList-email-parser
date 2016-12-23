@@ -9,7 +9,6 @@ import re
 from email.utils import parseaddr
 from connection import *
 
-
 #Create an IMAP4 instance (with SSL for security) that connects to the gmail server
 M = imaplib.IMAP4_SSL('imap.gmail.com')
 
@@ -19,22 +18,23 @@ def init():
     loginToEmail(M, EMAIL_ACCOUNT, EMAIL_FOLDER, PASSWORD)
 
 def formatString(string):
-    ##Turns into all caps and gets rid of commas and colons
-    #   make string all caps
+    #Transform to uppercase
     string = string.upper()
-    #   Replace commas with spaces
-    string = string.replace(","," ")
-    #   Replace colons with spaces
-    string = string.replace(":"," ")
-    #   Replace semicolons with spaces
-    string = string.replace(";"," ")
-    #   Replace parenthesis with spaces
-    string = string.replace("("," ")
-    string = string.replace(")"," ")
-    #   Replace X's with spaces
-    string = string.replace("x", " ")
-    string = string.replace("X", " ")
+    #Remove all characters in list
+    for ch in [',',':', ';', '(',')','x','X', '[NETWORK-EQUIPMENT]', '.']:
+        if ch in string:
+            string=string.replace(ch,'')
     return string
+
+def getConditionFromString(string):
+    conditions = []
+    #split string parameter into words
+    for word in string.split():
+        #find words that fit condition criteria, append them to conditions list
+        for condition in ['NIB', 'NEW', 'NOB', 'REF', 'USED']:
+            if word.startswith(condition):
+                conditions.append(word)
+    return conditions
 
 def getEmailBody(data):
     body = email.message_from_bytes(data[0][1])
@@ -50,6 +50,17 @@ def getSenderInfo(msg):
 def getSubjectLine(msg):
     subject = str(email.header.make_header(email.header.decode_header(msg['Subject'])))
     return subject
+
+def getStatusFromString(string):
+    statusFound = []
+    #split string parameter into words
+    for word in string.split():
+        #find words that match status criteria
+        for status in ['WTB', 'RFQ', 'WTS']:
+            if word.startswith(status):
+                #append matches to statusFound list
+                statusFound.append(status)
+                return statusFound
 
 def loginToEmail(host, account, folder, password):
     #Log in to gmail account
@@ -75,24 +86,30 @@ def loginToEmail(host, account, folder, password):
 def parseRawEmailMessages(msg, data):
     #   Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
-    print(subjectLine)
+    print('Subject Line:' ,  subjectLine)
 
     partsInSubject = getPartNumbersFromString(subjectLine)
-    print('Parts in subject:',partsInSubject)
+    print('Parts:', partsInSubject)
+    conditionsInSubject = getConditionFromString(subjectLine)
+    print('Conditions:', conditionsInSubject)
+
+    statusInSubject = getStatusFromString(subjectLine)
+    print('Status:', statusInSubject)
 
     #   Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
     senderEmail = getSenderInfo(msg)[1]
-    print(senderName, senderEmail)
-
+    print('Sender Name:', senderName)
+    print('Sender Email:', senderEmail)
 
     '''
     #   Get the body of the email
     emailBody = getEmailBody(data)
     print(emailBody)
+    '''
     #Print a dividing line between each email for clarity in idle
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-    '''
+
 #FUNCTION: wordSplitter. Splits the string into words, and goes through each word in the string and finds the first word that starts with "AIR-"
 def getPartNumbersFromString(string):
     result = []
@@ -119,29 +136,8 @@ def retrieveEmails(host):
         #Parse msg to get desired data
         parseRawEmailMessages(msg, data)
 
-
 #Initializes the app
 init();
 
 #Log out of the Email Account
 M.logout()
-
-
-'''#FUNCTION: typeSplitter. Splits the string into words, and goes through each word in the string and finds the first word that fits type status criteria
-def typeSplitter(subject):
-    for word in subject.split():
-        if word.startswith('WTB') or word.startswith("wtb") or word.startswith('RFQ') or word.startswith("rfq") or word.startswith("WTS") or word.startswith("wts"):
-            return word
-
-#FUNCTION: typeSplitter. Splits the string into words, and goes through each word in the string and finds the words that fits type condition criteria, appends them to list
-def conditionSplitter(subject):
-    hdrCdtn = []
-    global hdrCdtn
-    for word in subject.split():
-        if word.startswith('NIB') or word.startswith("(NIB)") or word.startswith("nib") or word.startswith("(nib)")or word.startswith("(new)")or word.startswith("NEW") \
-           or word.startswith('NOB') or word.startswith("(NOB)") or word.startswith("nob") or word.startswith("(nob)") \
-           or word.startswith("REF") or word.startswith("(REF)") or word.startswith("ref") or word.startswith("(ref") \
-           or word.startswith("USED") or word.startswith("(USED)") or word.startswith("used")or word.startswith("(used)"):
-            hdrCdtn.append(word)
-    #print ("Condition: ", hdrCdtn)
-'''

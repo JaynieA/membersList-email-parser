@@ -26,7 +26,7 @@ def formatString(string):
             string=string.replace(ch,'')
     return string
 
-def getConditionFromString(string):
+def getCondition(string):
     conditions = []
     #split string parameter into words
     for word in string.split():
@@ -40,18 +40,24 @@ def getEmailBody(data):
     body = email.message_from_bytes(data[0][1])
     return body;
 
+def getParts(string):
+    result = []
+    #split string parameter into words
+    for word in string.split():
+        #find words that start with 'AIR-'
+        if word.startswith('AIR-'):
+            #append matches to result list
+            result.append(word)
+    return result;
+
 def getSenderInfo(msg):
-    #Gets the message sender's name and email address
+    #Gets the message sender's name and email address from raw message string
     sender = str(email.header.make_header(email.header.decode_header(msg['from'])))
     senderName = (parseaddr(sender)[0])
     senderEmail = (parseaddr(sender)[1])
     return senderName, senderEmail
 
-def getSubjectLine(msg):
-    subject = str(email.header.make_header(email.header.decode_header(msg['Subject'])))
-    return subject
-
-def getStatusFromString(string):
+def getStatus(string):
     statusFound = []
     #split string parameter into words
     for word in string.split():
@@ -61,6 +67,16 @@ def getStatusFromString(string):
                 #append matches to statusFound list
                 statusFound.append(status)
                 return statusFound
+
+def getSubjectLine(msg):
+    #Gets raw subject line from raw message string
+    subject = str(email.header.make_header(email.header.decode_header(msg['Subject'])))
+    return subject
+
+def getQuantity(string):
+    #Gets clear number not followed by "/" or a digit followed by "/"
+    quantity = re.findall('\s+(\d+(?!/)(?!\d/))', string)
+    return quantity
 
 def loginToEmail(host, account, folder, password):
     #Log in to gmail account
@@ -88,35 +104,29 @@ def parseRawEmailMessages(msg, data):
     subjectLine = formatString(getSubjectLine(msg))
     print('Subject Line:' ,  subjectLine)
 
-    # #Parse Subject Line for parts, condition, status
-    partsInSubject = getPartNumbersFromString(subjectLine)
-    print('Parts:', partsInSubject)
-    conditionsInSubject = getConditionFromString(subjectLine)
-    print('Conditions:', conditionsInSubject)
-    statusInSubject = getStatusFromString(subjectLine)
-    print('Status:', statusInSubject)
-
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
     print('Sender Name:', senderName)
     senderEmail = getSenderInfo(msg)[1]
     print('Sender Email:', senderEmail)
 
+    #Parse Subject Line for parts, condition, status
+    partsInSubject = getParts(subjectLine)
+    print('Parts:', partsInSubject)
+    conditionsInSubject = getCondition(subjectLine)
+    print('Conditions:', conditionsInSubject)
+    statusInSubject = getStatus(subjectLine)
+    print('Status:', statusInSubject)
+    quantityInSubject = getQuantity(subjectLine)
+    print('Quantity', quantityInSubject)
+
     '''
     #   Get the body of the email
     emailBody = getEmailBody(data)
     print(emailBody)
     '''
-    #Print a dividing line between each email for clarity in idle
+    #Print a dividing line between each email for clarity 
     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
-#FUNCTION: wordSplitter. Splits the string into words, and goes through each word in the string and finds the first word that starts with "AIR-"
-def getPartNumbersFromString(string):
-    result = []
-    for word in string.split():
-        if word.startswith('AIR-'):
-            result.append(word)
-    return result;
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

@@ -23,10 +23,6 @@ class EmailBodyLine:
         self.conditions = conditionList
         self.quantity = quantityList
         self.status = statusList
-        EmailBodyLine.lineCount += 1
-    #Method
-    def displayLineCount(self):
-        print('Line # %d' % EmailBodyLine.lineCount)
     #Method
     def displayLineInfo(self):
         print ('Parts:', self.parts, ', Conditions:', self.conditions, ', Quantity:', self.quantity, ', Status:', self.status)
@@ -35,6 +31,33 @@ class EmailBodyLine:
 #initializes app
 def init():
     loginToEmail(M, EMAIL_ACCOUNT, EMAIL_FOLDER, PASSWORD)
+
+def condenseList(listName):
+    if len(listName) == 0:
+        listName = None
+    elif len(listName) == 1:
+        listName = listName[0]
+    return listName
+
+def formatEmailBody(emailBody, senderName):
+    #   Get rid of everything after 'Uneda Code of Conduct Policy'
+    emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
+    #get rid of everything after the sender's signature (if it exists)
+    if senderName != '':
+        senderFirstName = senderName.split()[0]
+        if senderFirstName in emailBody:
+            emailBody = emailBody.split(senderName)[0]
+    #get rid of everything after logo image if exists
+    for word in ['[cid:', '[image:']:
+        if word in emailBody:
+            emailBody = emailBody.split(word)[0]
+    #get rid of characters in list
+    for ch in ['=3D', '=A0', '*', '.', '(', ')', '=']:
+        if ch in emailBody:
+            emailBody=emailBody.replace(ch,'')
+    #Transform email body to all uppercase
+    emailBody = emailBody.upper()
+    return emailBody
 
 def formatString(string):
     #Transform to uppercase
@@ -65,6 +88,11 @@ def getDateTime(tupule):
         postDate = local_date.strftime("%m-%d-%Y")
         postTime = local_date.strftime("%H:%M %p")
         return postDate, postTime
+
+def getEmailTextFromBody(data):
+    #parses raw email body (email message type), and returns the text content of the email as a string
+    body = email.message_from_bytes(data[0][1]).get_payload()
+    return body;
 
 def getParts(string):
     result = []
@@ -133,13 +161,6 @@ def loginToEmail(host, account, folder, password):
     else:
         print("ERROR: Unable to open UNEDA mailbox ", rv)
 
-def condenseList(listName):
-    if len(listName) == 0:
-        listName = None
-    elif len(listName) == 1:
-        listName = listName[0]
-    return listName
-
 def parseRawEmailMessages(msg, data, emailNumber):
     #Print Position of Current Email that is parsing
     print('Email #:', emailNumber)
@@ -150,7 +171,7 @@ def parseRawEmailMessages(msg, data, emailNumber):
 
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
-    '''
+
     print('Sender Name:', senderName)
     senderEmail = getSenderInfo(msg)[1]
     print('Sender Email:', senderEmail)
@@ -158,6 +179,7 @@ def parseRawEmailMessages(msg, data, emailNumber):
     #Parse Subject Line for parts, condition, status
     partsInSubject = getParts(subjectLine)
     print('Parts:', partsInSubject)
+
     conditionsInSubject = getCondition(subjectLine)
     print('Conditions:', conditionsInSubject)
     statusInSubject = getStatus(subjectLine)
@@ -170,14 +192,13 @@ def parseRawEmailMessages(msg, data, emailNumber):
     print('Date:', date)
     time = getDateTime(msg)[1]
     print('Time:', time)
-    '''
 
     #Get the body of the email
     emailBody = getEmailTextFromBody(data)
     #Format the text of the email body
     emailBody = formatEmailBody(emailBody, senderName)
 
-    print(emailBody)
+    #print(emailBody)
 
     #SPLIT EMAIL BODY INTO LINES TO PARSE
     emailBodyByLine = emailBody.split('\n')
@@ -187,7 +208,7 @@ def parseRawEmailMessages(msg, data, emailNumber):
         line = line.replace('\t', ' ')
         if line != '':
             lines.append(line)
-    print('All Email Lines :',lines)
+    #print('All Email Lines :',lines)
 
     #For each line in the email, find the following:
     lineCounter = 1
@@ -224,33 +245,6 @@ def parseRawEmailMessages(msg, data, emailNumber):
 
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
-
-
-
-def formatEmailBody(emailBody, senderName):
-    #   Get rid of everything after 'Uneda Code of Conduct Policy'
-    emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
-    #get rid of everything after the sender's signature (if it exists)
-    if senderName != '':
-        senderFirstName = senderName.split()[0]
-        if senderFirstName in emailBody:
-            emailBody = emailBody.split(senderName)[0]
-    #get rid of everything after logo image if exists
-    for word in ['[cid:', '[image:']:
-        if word in emailBody:
-            emailBody = emailBody.split(word)[0]
-    #get rid of characters in list
-    for ch in ['=3D', '=A0', '*', '.', '(', ')', '=']:
-        if ch in emailBody:
-            emailBody=emailBody.replace(ch,'')
-    #Transform email body to all uppercase
-    emailBody = emailBody.upper()
-    return emailBody
-
-def getEmailTextFromBody(data):
-    #parses raw email body (email message type), and returns the text content of the email as a string
-    body = email.message_from_bytes(data[0][1]).get_payload()
-    return body;
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

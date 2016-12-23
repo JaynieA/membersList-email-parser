@@ -180,8 +180,7 @@ def parseRawEmailMessages(msg, data, emailNumber):
         line = line.replace('\t', ' ')
         if line != '':
             lines.append(line)
-
-    print('All Email Lines :',lines)
+    #print('All Email Lines :',lines)
 
     #For each line in the email, find the following:
     lineCounter = 1
@@ -214,13 +213,13 @@ def parseRawEmailMessages(msg, data, emailNumber):
             statusInLine = None
 
         #Make an object of the findings from the line and display it
-        #   concatenate a name for the object
-        objName = str(emailNumber) + '.' + str(lineCounter)
-        print(objName)
         # IF all lists are not empty, use constructor to make the object
         if partInLine == None and conditionInLine == None and quantityInLine == None and statusInLine == None:
-            print('skip this line- it contains no info')
+            pass
         else:
+            #   concatenate a name for the object
+            objName = str(emailNumber) + '.' + str(lineCounter)
+            print(objName)
             objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine, statusInLine)
             #   call it's method displayLineInfo to display the new object's info
             objName.displayLineInfo()
@@ -229,7 +228,7 @@ def parseRawEmailMessages(msg, data, emailNumber):
             lineCounter += 1
 
     #Print a dividing line between each email for clarity
-    print('~~~~~~~~~~~~~~~~~~~~~~END~~~~~~~~~~~~~~~~~~~~~~')
+    print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 
 
 

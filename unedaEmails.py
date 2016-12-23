@@ -167,31 +167,39 @@ def parseRawEmailMessages(msg, data, emailNumber):
 
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
-    print('Subject Line:' ,  subjectLine)
+    #print('Subject Line:' ,  subjectLine)
 
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
-
-    print('Sender Name:', senderName)
-    senderEmail = getSenderInfo(msg)[1]
-    print('Sender Email:', senderEmail)
-
-    #Parse Subject Line for parts, condition, status
-    partsInSubject = getParts(subjectLine)
-    print('Parts:', partsInSubject)
-
-    conditionsInSubject = getCondition(subjectLine)
-    print('Conditions:', conditionsInSubject)
-    statusInSubject = getStatus(subjectLine)
-    print('Status:', statusInSubject)
-    quantityInSubject = getQuantity(subjectLine)
-    print('Quantity:', quantityInSubject)
 
     #Get and Print Message DATE & TIME
     date = getDateTime(msg)[0]
     print('Date:', date)
     time = getDateTime(msg)[1]
     print('Time:', time)
+
+    print('Sender Name:', senderName)
+    senderEmail = getSenderInfo(msg)[1]
+    print('Sender Email:', senderEmail)
+
+    #Parse Subject Line for parts, condition, status
+    print('\nHEADER')
+    #Parts
+    partsInSubject = getParts(subjectLine)
+    partsInSubject = condenseList(partsInSubject)
+    print('Parts:', partsInSubject)
+    #Condition
+    conditionsInSubject = getCondition(subjectLine)
+    conditionsInSubject = condenseList(conditionsInSubject)
+    print('Conditions:', conditionsInSubject)
+    #Status
+    statusInSubject = getStatus(subjectLine)
+    statusInSubject = condenseList(statusInSubject)
+    print('Status:', statusInSubject)
+    #Quantity
+    quantityInSubject = getQuantity(subjectLine)
+    quantityInSubject = condenseList(quantityInSubject)
+    print('Quantity:', quantityInSubject)
 
     #Get the body of the email
     emailBody = getEmailTextFromBody(data)
@@ -209,7 +217,7 @@ def parseRawEmailMessages(msg, data, emailNumber):
         if line != '':
             lines.append(line)
     #print('All Email Lines :',lines)
-
+    print('\nBODY')
     #For each line in the email, find the following:
     lineCounter = 1
     for line in lines:

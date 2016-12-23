@@ -138,10 +138,21 @@ def parseRawEmailMessages(msg, data):
 
     #   Get the body of the email
     emailBody = getEmailTextFromBody(data)
-    #FORMAT TEXT OF EMAIL BODY
+    #   Format the text of the email body
+    emailBody = formatEmailBody(emailBody, senderName)
+
+    print(emailBody)
+
+    #get conditions from email body
+    conditionFromBody = getCondition(emailBody)
+    print('Conditions:',conditionFromBody)
+
+    #Print a dividing line between each email for clarity
+    print('END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
+def formatEmailBody(emailBody, senderName):
     #   Get rid of everything after 'Uneda Code of Conduct Policy'
     emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
-
     #get rid of everything after the sender's signature (if it exists)
     senderFirstName = senderName.split()[0]
     if senderFirstName in emailBody:
@@ -156,15 +167,7 @@ def parseRawEmailMessages(msg, data):
             emailBody=emailBody.replace(ch,'')
     #Transform email body to all uppercase
     emailBody = emailBody.upper()
-    print(emailBody)
-
-    #get conditions from email body
-    conditionFromBody = getCondition(emailBody)
-    print('Conditions:',conditionFromBody)
-
-    #Print a dividing line between each email for clarity
-    print('END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
+    return emailBody
 
 def getEmailTextFromBody(data):
     #parses raw email body (email message type), and returns the text content of the email as a string

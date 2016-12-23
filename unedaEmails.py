@@ -33,10 +33,9 @@ def getCondition(string):
         #find words that fit condition criteria, append them to conditions list
         for condition in ['NIB', 'NEW', 'NOB', 'REF', 'USED', 'REFURB']:
             if word.startswith(condition):
+                if word == 'REFURB':
+                    word = 'REF'
                 conditions.append(word)
-    for word in conditions:
-        if word == 'REFURB':
-            word = 'REF'
     return conditions
 
 def getDateTime(tupule):
@@ -107,15 +106,25 @@ def loginToEmail(host, account, folder, password):
     else:
         print("ERROR: Unable to open UNEDA mailbox ", rv)
 
-def parseRawEmailMessages(msg, data):
+def condenseList(listName):
+    if len(listName) == 1:
+        listName = listName[0]
+    if len(listName) == 0:
+        listName = None
+
+def parseRawEmailMessages(msg, data, emailNumber):
+    #Print Position of Current Email that is parsing
+    print('Email #:', emailNumber)
+
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
     print('Subject Line:' ,  subjectLine)
 
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
-    '''
+
     print('Sender Name:', senderName)
+    '''
     senderEmail = getSenderInfo(msg)[1]
     print('Sender Email:', senderEmail)
 
@@ -152,19 +161,67 @@ def parseRawEmailMessages(msg, data):
         if line != '':
             lines.append(line)
 
-    print(lines)
+    print('Email Lines List:',lines)
 
+    #Create a class for the lines in the email body
+    class EmailBodyLine:
+        "The information contained in a line of the email body"
+        lineCount = 0
+        #constructor
+        def __init__(self, partList, conditionList, quantityList):
+            self.parts = partList
+            self.conditions = conditionList
+            self.quantity = quantityList
+            EmailBodyLine.lineCount += 1
+        #Method
+        def displayLineCount(self):
+            print('Line # %d' % EmailBodyLine.lineCount)
+        #Method
+        def displayLineInfo(self):
+            print ('Parts:', self.parts, ', Conditions:', self.conditions, ', Quantity:', self.quantity)
+
+
+    #For each line in the email, find the following:
+    lineCounter = 1
+    for line in lines:
+        #Condition
+        conditionInLine = getCondition(line)
+        conditionInLine = condenseList(conditionInLine)
+        #Part Number beginning with 'AIR-'
+        partInLine = getParts(line)
+        partInLine = condenseList(partInLine)
+        #Quantity
+        quantityInLine = getQuantity(line)
+        quantityInLine = condenseList(quantityInLine)
+
+        #Make an object of the findings from the line and display it
+        #   concatenate a name for the object
+        objName = str(emailNumber) + '.' + str(lineCounter)
+        print(objName)
+        # IF all lists are not empty, use constructor to make the object
+        if partInLine == None and conditionInLine == None and quantityInLine == None:
+            print('skip this line- it contains no info')
+        else:
+            objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine)
+            #   call it's method displayLineInfo to display the new object's info
+            objName.displayLineInfo()
+
+            #increment the line counter
+            lineCounter += 1
 
     #Print a dividing line between each email for clarity
-    print('END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    print('~~~~~~~~~~~~~~~~~~~~~~END~~~~~~~~~~~~~~~~~~~~~~')
+
+
 
 def formatEmailBody(emailBody, senderName):
     #   Get rid of everything after 'Uneda Code of Conduct Policy'
     emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
     #get rid of everything after the sender's signature (if it exists)
-    senderFirstName = senderName.split()[0]
-    if senderFirstName in emailBody:
-        emailBody = emailBody.split(senderName)[0]
+    if senderName != '':
+        senderFirstName = senderName.split()[0]
+        if senderFirstName in emailBody:
+            emailBody = emailBody.split(senderName)[0]
     #get rid of everything after logo image if exists
     for word in ['[cid:', '[image:']:
         if word in emailBody:
@@ -189,6 +246,7 @@ def retrieveEmails(host):
         print("No messages found!")
         return
     #Process each email in the folder
+    emailCounter = 1
     for num in data[0].split():
         rv, data = host.fetch(num, '(RFC822)')
         #Return if there is an error
@@ -198,7 +256,8 @@ def retrieveEmails(host):
         #Define raw email message as msg
         msg = email.message_from_bytes(data[0][1])
         #Parse msg to get desired data
-        parseRawEmailMessages(msg, data)
+        parseRawEmailMessages(msg, data, emailCounter)
+        emailCounter += 1
 
 #Initializes the app
 init();

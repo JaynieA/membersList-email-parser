@@ -12,6 +12,25 @@ from connection import *
 #Create an IMAP4 instance (with SSL for security) that connects to the gmail server
 M = imaplib.IMAP4_SSL('imap.gmail.com')
 
+#CLASSES
+#Create a class for the lines in the email body
+class EmailBodyLine:
+    "The information contained in a line of the email body"
+    lineCount = 0
+    #constructor
+    def __init__(self, partList, conditionList, quantityList, statusList):
+        self.parts = partList
+        self.conditions = conditionList
+        self.quantity = quantityList
+        self.status = statusList
+        EmailBodyLine.lineCount += 1
+    #Method
+    def displayLineCount(self):
+        print('Line # %d' % EmailBodyLine.lineCount)
+    #Method
+    def displayLineInfo(self):
+        print ('Parts:', self.parts, ', Conditions:', self.conditions, ', Quantity:', self.quantity, ', Status:', self.status)
+
 ##FUNCTIONS
 #initializes app
 def init():
@@ -86,6 +105,10 @@ def getSubjectLine(msg):
 def getQuantity(string):
     #Gets clear number not followed by "/" or a digit followed by "/"
     quantity = re.findall('\s+(\d+(?!/)(?!\d/))', string)
+    for number in quantity:
+        #deletes numbers added to quantity list with lenghts over 4
+        if len(number) > 4:
+            quantity.remove(number)
     return quantity
 
 def loginToEmail(host, account, folder, password):
@@ -120,9 +143,8 @@ def parseRawEmailMessages(msg, data, emailNumber):
 
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
-
-    print('Sender Name:', senderName)
     '''
+    print('Sender Name:', senderName)
     senderEmail = getSenderInfo(msg)[1]
     print('Sender Email:', senderEmail)
 
@@ -159,26 +181,7 @@ def parseRawEmailMessages(msg, data, emailNumber):
         if line != '':
             lines.append(line)
 
-    print('Email Lines List:',lines)
-
-    #Create a class for the lines in the email body
-    class EmailBodyLine:
-        "The information contained in a line of the email body"
-        lineCount = 0
-        #constructor
-        def __init__(self, partList, conditionList, quantityList, statusList):
-            self.parts = partList
-            self.conditions = conditionList
-            self.quantity = quantityList
-            self.status = statusList
-            EmailBodyLine.lineCount += 1
-        #Method
-        def displayLineCount(self):
-            print('Line # %d' % EmailBodyLine.lineCount)
-        #Method
-        def displayLineInfo(self):
-            print ('Parts:', self.parts, ', Conditions:', self.conditions, ', Quantity:', self.quantity, ', Status:', self.status)
-
+    print('All Email Lines :',lines)
 
     #For each line in the email, find the following:
     lineCounter = 1

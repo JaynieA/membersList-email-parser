@@ -106,11 +106,6 @@ def loginToEmail(host, account, folder, password):
     else:
         print("ERROR: Unable to open UNEDA mailbox ", rv)
 
-def condenseList(listName):
-    if len(listName) == 1:
-        listName = listName[0]
-    if len(listName) == 0:
-        listName = None
 
 def parseRawEmailMessages(msg, data, emailNumber):
     #Print Position of Current Email that is parsing
@@ -186,13 +181,22 @@ def parseRawEmailMessages(msg, data, emailNumber):
     for line in lines:
         #Condition
         conditionInLine = getCondition(line)
-        conditionInLine = condenseList(conditionInLine)
+        if len(conditionInLine) == 1:
+            conditionInLine = conditionInLine[0]
+        if len(conditionInLine) == 0:
+            conditionInLine = None
         #Part Number beginning with 'AIR-'
         partInLine = getParts(line)
-        partInLine = condenseList(partInLine)
+        if len(partInLine) == 1:
+            partInLine = partInLine[0]
+        if len(partInLine) == 0:
+            partInLine = None
         #Quantity
         quantityInLine = getQuantity(line)
-        quantityInLine = condenseList(quantityInLine)
+        if len(quantityInLine) == 1:
+            quantityInLine = quantityInLine[0]
+        if len(quantityInLine) == 0:
+            quantityInLine = None
 
         #Make an object of the findings from the line and display it
         #   concatenate a name for the object

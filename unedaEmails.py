@@ -31,9 +31,12 @@ def getCondition(string):
     #split string parameter into words
     for word in string.split():
         #find words that fit condition criteria, append them to conditions list
-        for condition in ['NIB', 'NEW', 'NOB', 'REF', 'USED']:
+        for condition in ['NIB', 'NEW', 'NOB', 'REF', 'USED', 'REFURB']:
             if word.startswith(condition):
                 conditions.append(word)
+    for word in conditions:
+        if word == 'REFURB':
+            word = 'REF'
     return conditions
 
 def getDateTime(tupule):
@@ -44,8 +47,6 @@ def getDateTime(tupule):
         postDate = local_date.strftime("%m-%d-%Y")
         postTime = local_date.strftime("%H:%M %p")
         return postDate, postTime
-
-
 
 def getParts(string):
     result = []
@@ -110,9 +111,10 @@ def parseRawEmailMessages(msg, data):
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
     print('Subject Line:' ,  subjectLine)
-    '''
+
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
+    '''
     print('Sender Name:', senderName)
     senderEmail = getSenderInfo(msg)[1]
     print('Sender Email:', senderEmail)
@@ -136,10 +138,29 @@ def parseRawEmailMessages(msg, data):
 
     #   Get the body of the email
     emailBody = getEmailTextFromBody(data)
-    #Format the Text of the email:
+    #FORMAT TEXT OF EMAIL BODY
     #   Get rid of everything after 'Uneda Code of Conduct Policy'
     emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
+
+    #get rid of everything after the sender's signature (if it exists)
+    senderFirstName = senderName.split()[0]
+    if senderFirstName in emailBody:
+        emailBody = emailBody.split(senderName)[0]
+    #get rid of everything after logo image if exists
+    for word in ['[cid:', '[image:']:
+        if word in emailBody:
+            emailBody = emailBody.split(word)[0]
+    #get rid of characters
+    for ch in ['=3D', '=A0', '*', '.', '(', ')', '=']:
+        if ch in emailBody:
+            emailBody=emailBody.replace(ch,'')
+    #Transform email body to all uppercase
+    emailBody = emailBody.upper()
     print(emailBody)
+
+    #get conditions from email body
+    conditionFromBody = getCondition(emailBody)
+    print('Conditions:',conditionFromBody)
 
     #Print a dividing line between each email for clarity
     print('END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')

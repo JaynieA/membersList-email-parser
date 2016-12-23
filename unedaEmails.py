@@ -265,15 +265,40 @@ def parseRawEmailMessages(msg, data, emailNumber):
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 
 def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
-    #Loop through the objects returned
+    #name items in completeHeaderInfo list
+    partsInHeader = completeHeaderInfo[0]
+    conditionsInHeader = completeHeaderInfo[1]
+    statusInHeader = completeHeaderInfo[2]
+    quantityInSubject =  completeHeaderInfo[3]
+
+    #Loop through the body objects and complete header info
     bodyResultsLength = len(allBodyObjects)
     #If no info objects returned from email body
     if bodyResultsLength == 0:
-        print('HEADER INFO ONLY ')
+        print('\n**HEADER INFO ONLY**')
+        #Apply defaults for None type's in header
+        if partsInHeader == None:
+            return
+        if conditionsInHeader == None:
+            conditionsInHeader = 'REF'
+        if statusInHeader == None:
+            statusInHeader = 'RFQ'
+        if quantityInSubject == None:
+            quantityInSubject = 1
 
         #If singular values only (no list values) in header
         if all(type(i) != list for i in completeHeaderInfo):
-            print('all singular stuff in header')
+            print('INSERT:',statusInHeader, quantityInSubject, conditionsInHeader, partsInHeader)
+        #If there are lists in the header
+        else:
+            print('!!! FOUND LIST IN HEADER')
+            #if all four info paremeters are lists
+            if all(type(i) == list for i in completeHeaderInfo):
+                #TODO: FIGURE OUT WHAT TO DO HERE
+                print(len(statusInHeader), len(quantityInSubject), len(conditionsInHeader), len(partsInHeader))
+            #if some are lists and some are strings
+            elif 
+
 
     #If info objects have been returned from email body
     elif bodyResultsLength > 0:

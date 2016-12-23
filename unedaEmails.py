@@ -161,6 +161,53 @@ def loginToEmail(host, account, folder, password):
     else:
         print("ERROR: Unable to open UNEDA mailbox ", rv)
 
+def splitAndParseEmailBody(emailBody, emailNumber):
+    #SPLIT EMAIL BODY INTO LINES TO PARSE
+    emailBodyByLine = emailBody.split('\n')
+    lines = []
+    for line in emailBodyByLine:
+        line = line.strip()
+        line = line.replace('\t', ' ')
+        if line != '':
+            lines.append(line)
+    #print('All Email Lines :',lines)
+
+    #hold all objects created from body parsing in list
+    allBodyObjects = []
+    #For each line in the email, find the following:
+    lineCounter = 1
+    for line in lines:
+        #Condition
+        conditionInLine = getCondition(line)
+        conditionInLine = condenseList(conditionInLine)
+        #Part Number beginning with 'AIR-'
+        partInLine = getParts(line)
+        partInLine = condenseList(partInLine)
+        #Quantity
+        quantityInLine = [int(s) for s in line.split() if s.isdigit() and len(s) < 4]
+        quantityInLine = condenseList(quantityInLine)
+        #Status
+        statusInLine = getStatus(line)
+        if statusInLine == None:
+            statusInLine = []
+        statusInLine = condenseList(statusInLine)
+
+        #Make an object of the findings from the line and display it
+        # IF all lists are not empty, use constructor to make the object
+        if partInLine == None and conditionInLine == None and quantityInLine == None and statusInLine == None:
+            pass
+        else:
+            #   concatenate a name for the object
+            objName = str(emailNumber) + '.' + str(lineCounter)
+            #print(objName)
+            objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine, statusInLine)
+            #   call it's method displayLineInfo to display the new object's info
+            #objName.displayLineInfo()
+            allBodyObjects.append(objName)
+            #increment the line counter
+            lineCounter += 1
+    return allBodyObjects
+
 def parseRawEmailMessages(msg, data, emailNumber):
     #Print Position of Current Email that is parsing
     print('Email #:', emailNumber)
@@ -208,61 +255,32 @@ def parseRawEmailMessages(msg, data, emailNumber):
 
     #print(emailBody)
 
-    #SPLIT EMAIL BODY INTO LINES TO PARSE
-    emailBodyByLine = emailBody.split('\n')
-    lines = []
-    for line in emailBodyByLine:
-        line = line.strip()
-        line = line.replace('\t', ' ')
-        if line != '':
-            lines.append(line)
-    #print('All Email Lines :',lines)
+    allBodyObjects = splitAndParseEmailBody(emailBody, emailNumber)
+    #Save all info from parsing the header into a list
+    completeHeaderInfo = [partsInSubject, conditionsInSubject, statusInSubject, quantityInSubject]
+    #Send all body objects and header info to be organized
+    organizeInfoToInsert(allBodyObjects, completeHeaderInfo)
 
-    #hold all objects created from body parsing in list
-    allBodyObjects = []
-    #For each line in the email, find the following:
-    lineCounter = 1
-    for line in lines:
-        #Condition
-        conditionInLine = getCondition(line)
-        conditionInLine = condenseList(conditionInLine)
-        #Part Number beginning with 'AIR-'
-        partInLine = getParts(line)
-        partInLine = condenseList(partInLine)
-        #Quantity
-        quantityInLine = [int(s) for s in line.split() if s.isdigit() and len(s) < 4]
-        quantityInLine = condenseList(quantityInLine)
-        #Status
-        statusInLine = getStatus(line)
-        if statusInLine == None:
-            statusInLine = []
-        statusInLine = condenseList(statusInLine)
+    #Print a dividing line between each email for clarity
+    print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 
-        #Make an object of the findings from the line and display it
-        # IF all lists are not empty, use constructor to make the object
-        if partInLine == None and conditionInLine == None and quantityInLine == None and statusInLine == None:
-            pass
-        else:
-            #   concatenate a name for the object
-            objName = str(emailNumber) + '.' + str(lineCounter)
-            #print(objName)
-            objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine, statusInLine)
-            #   call it's method displayLineInfo to display the new object's info
-            #objName.displayLineInfo()
-            allBodyObjects.append(objName)
-            #increment the line counter
-            lineCounter += 1
-
+def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
+    #Loop through the objects returned
     bodyResultsLength = len(allBodyObjects)
-    if bodyResultsLength > 0:
+    #If no info objects returned from email body
+    if bodyResultsLength == 0:
+        print('HEADER INFO ONLY ')
+
+        #If singular values only (no list values) in header
+        if all(type(i) != list for i in completeHeaderInfo):
+            print('all singular stuff in header')
+
+    #If info objects have been returned from email body
+    elif bodyResultsLength > 0:
         print('\nBODY')
         for item in allBodyObjects:
             item.displayLineInfo()
 
-    
-
-    #Print a dividing line between each email for clarity
-    print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

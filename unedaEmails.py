@@ -217,7 +217,9 @@ def parseRawEmailMessages(msg, data, emailNumber):
         if line != '':
             lines.append(line)
     #print('All Email Lines :',lines)
-    print('\nBODY')
+
+    #hold all objects created from body parsing in list
+    allBodyObjects = []
     #For each line in the email, find the following:
     lineCounter = 1
     for line in lines:
@@ -243,13 +245,19 @@ def parseRawEmailMessages(msg, data, emailNumber):
         else:
             #   concatenate a name for the object
             objName = str(emailNumber) + '.' + str(lineCounter)
-            print(objName)
+            #print(objName)
             objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine, statusInLine)
             #   call it's method displayLineInfo to display the new object's info
-            objName.displayLineInfo()
-
+            #objName.displayLineInfo()
+            allBodyObjects.append(objName)
             #increment the line counter
             lineCounter += 1
+
+    bodyResultsLength = len(allBodyObjects)
+    if bodyResultsLength > 0:
+        print('\nBODY')
+        for item in allBodyObjects:
+            item.displayLineInfo()
 
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')

@@ -103,6 +103,7 @@ def getSubjectLine(msg):
     return subject
 
 def getQuantity(string):
+    #Use to parse the email subject ONLY
     #Gets clear number not followed by "/" or a digit followed by "/"
     quantity = re.findall('\s+(\d+(?!/)(?!\d/))', string)
     for number in quantity:
@@ -198,18 +199,13 @@ def parseRawEmailMessages(msg, data, emailNumber):
         partInLine = getParts(line)
         partInLine = condenseList(partInLine)
         #Quantity
-        quantityInLine = getQuantity(line)
-        print('before q:',quantityInLine)
+        quantityInLine = [int(s) for s in line.split() if s.isdigit() and len(s) < 4]
         quantityInLine = condenseList(quantityInLine)
-        print('after q:',quantityInLine)
-        #status
+        #Status
         statusInLine = getStatus(line)
         if statusInLine == None:
             statusInLine = []
-        if len(statusInLine) == 1:
-            statusInLine = statusInLine[0]
-        if len(statusInLine) == 0:
-            statusInLine = None
+        statusInLine = condenseList(statusInLine)
 
         #Make an object of the findings from the line and display it
         # IF all lists are not empty, use constructor to make the object

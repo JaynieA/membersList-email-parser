@@ -136,16 +136,24 @@ def parseRawEmailMessages(msg, data):
     print('Time:', time)
     '''
 
-    #   Get the body of the email
+    #Get the body of the email
     emailBody = getEmailTextFromBody(data)
-    #   Format the text of the email body
+    #Format the text of the email body
     emailBody = formatEmailBody(emailBody, senderName)
 
     print(emailBody)
 
-    #get conditions from email body
-    conditionFromBody = getCondition(emailBody)
-    print('Conditions:',conditionFromBody)
+    #SPLIT EMAIL BODY INTO LINES TO PARSE
+    emailBodyByLine = emailBody.split('\n')
+    lines = []
+    for line in emailBodyByLine:
+        line = line.strip()
+        line = line.replace('\t', ' ')
+        if line != '':
+            lines.append(line)
+
+    print(lines)
+
 
     #Print a dividing line between each email for clarity
     print('END~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
@@ -161,7 +169,7 @@ def formatEmailBody(emailBody, senderName):
     for word in ['[cid:', '[image:']:
         if word in emailBody:
             emailBody = emailBody.split(word)[0]
-    #get rid of characters
+    #get rid of characters in list
     for ch in ['=3D', '=A0', '*', '.', '(', ')', '=']:
         if ch in emailBody:
             emailBody=emailBody.replace(ch,'')

@@ -259,6 +259,8 @@ def parseRawEmailMessages(msg, data, emailNumber):
         for item in allBodyObjects:
             item.displayLineInfo()
 
+    
+
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 

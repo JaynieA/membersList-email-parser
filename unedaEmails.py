@@ -330,6 +330,21 @@ def formatHeaderOnlyForInsert(completeHeaderInfo):
         else:
             formatInsertFromHeaderWithListsNotParts(partsInHeader, headerStatQtyCond)
 
+#HEADER AND BODY COMBO INSERT FUNCTIONS
+def formatInsertFromHeaderAndBody(allBodyObjects, completeHeaderInfo):
+    print('---HEADER AND BODY INFO---')
+    print('From header:',completeHeaderInfo)
+    for item in allBodyObjects:
+        #print(item.parts, item.conditions, item.quantity, item.status)
+        item.displayLineInfo()
+    #If there are 1-2 objects in allBodyObjects:
+    if len(allBodyObjects) <= 2:
+        print('Run SIMPLE formatSimpleHeaderBodyInsertCombination')
+    #If there are more than 2 objects in allBodyObjects:
+    elif len(allBodyObjects) >= 3:
+        print('Run COMPLEX formatComplexHeaderBodyInsertCombination')
+
+
 #DB INSERT FORMAT FUNCTION
 def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
     #Loop through the body objects and completeHeaderInfo List
@@ -338,12 +353,12 @@ def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
     if bodyResultsLength == 0:
         #Format Header Info for insertion
         formatHeaderOnlyForInsert(completeHeaderInfo)
-
     #If info objects have been returned from email body
     elif bodyResultsLength > 0:
         print('\nBODY')
-        for item in allBodyObjects:
-            item.displayLineInfo()
+        formatInsertFromHeaderAndBody(allBodyObjects, completeHeaderInfo)
+
+
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

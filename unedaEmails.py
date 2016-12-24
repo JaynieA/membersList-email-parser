@@ -211,24 +211,19 @@ def splitAndParseEmailBody(emailBody, emailNumber):
 def parseRawEmailMessages(msg, data, emailNumber):
     #Print Position of Current Email that is parsing
     print('Email #:', emailNumber)
-
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
     #print('Subject Line:' ,  subjectLine)
-
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
-
     #Get and Print Message DATE & TIME
     date = getDateTime(msg)[0]
     print('Date:', date)
     time = getDateTime(msg)[1]
     print('Time:', time)
-
     print('Sender Name:', senderName)
     senderEmail = getSenderInfo(msg)[1]
     print('Sender Email:', senderEmail)
-
     #Parse Subject Line for parts, condition, status
     print('\nHEADER')
     #Parts
@@ -247,14 +242,11 @@ def parseRawEmailMessages(msg, data, emailNumber):
     quantityInSubject = getQuantity(subjectLine)
     quantityInSubject = condenseList(quantityInSubject)
     print('Quantity:', quantityInSubject)
-
     #Get the body of the email
     emailBody = getEmailTextFromBody(data)
     #Format the text of the email body
     emailBody = formatEmailBody(emailBody, senderName)
-
     #print(emailBody)
-
     allBodyObjects = splitAndParseEmailBody(emailBody, emailNumber)
     #Save all info from parsing the header into a list
     completeHeaderInfo = [partsInSubject, conditionsInSubject, statusInSubject, quantityInSubject]
@@ -264,6 +256,8 @@ def parseRawEmailMessages(msg, data, emailNumber):
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 
+
+#FUNCTIONS FOR FORMATTING HEADER ONLY FOR DB INSERT
 def returnListIndexValOrString(listName, listPosition, counter):
     if type(listName[listPosition]) is str:
         nameToReturn = listName[0]
@@ -272,15 +266,12 @@ def returnListIndexValOrString(listName, listPosition, counter):
     return nameToReturn
 
 def formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond):
-    #if the parts parameter is a list:
-    if (type(partsInHeader) is list):
-        #Make all lists the same length as the parts list
-        for i in headerStatQtyCond:
-            if (type(i) is list and len(i) < len(partsInHeader)):
-                while len(i) < len(partsInHeader):
-                    #append last item in list to end of list until it is the same length as parts list
-                    i.append(i[-1])
-
+    #Make all lists the same length as the parts list
+    for i in headerStatQtyCond:
+        if (type(i) is list and len(i) < len(partsInHeader)):
+            while len(i) < len(partsInHeader):
+                #append last item in list to end of list until it is the same length as parts list
+                i.append(i[-1])
     #For each item in the parts list, format an insert statement
     count = 0
     while count < len(partsInHeader):
@@ -295,6 +286,19 @@ def formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond):
         print('INSERT:',status, quantity, condition, part)
         #increment the counter
         count += 1
+
+def formatInsertFromHeaderWithListsNotParts(partsInHeader, headerStatQtyCond):
+    #insert first item in params list as params
+    newList=[]
+    for param in headerStatQtyCond:
+        if type(param) is list:
+            newList.append(param[0])
+        elif type(param) is str:
+            newList.append(param)
+    status = newList[0]
+    quantity = newList[1]
+    condition = newList[2]
+    print('INSERT:',status, quantity, condition,  partsInHeader)
 
 def formatHeaderOnlyForInsert(completeHeaderInfo):
     #name items in completeHeaderInfo list
@@ -318,15 +322,15 @@ def formatHeaderOnlyForInsert(completeHeaderInfo):
         print('INSERT:',statusInHeader, quantityInSubject, conditionsInHeader, partsInHeader)
     #If there are lists in the header
     else:
-        print('!!! FOUND LIST IN HEADER')
-        #IF parts param is a list::
         headerStatQtyCond = [statusInHeader, quantityInSubject, conditionsInHeader]
-        formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond)
-        #TODO:
+        #IF parts param is a list:
+        if (type(partsInHeader) is list):
+            formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond)
         #If parts is a string and other params are lists
+        else:
+            formatInsertFromHeaderWithListsNotParts(partsInHeader, headerStatQtyCond)
 
-
-
+#DB INSERT FORMAT FUNCTION
 def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
     #Loop through the body objects and completeHeaderInfo List
     bodyResultsLength = len(allBodyObjects)

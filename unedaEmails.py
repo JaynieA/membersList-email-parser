@@ -264,48 +264,82 @@ def parseRawEmailMessages(msg, data, emailNumber):
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 
-def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
+def returnListIndexValOrString(listName, listPosition, counter):
+    if type(listName[listPosition]) is str:
+        nameToReturn = listName[0]
+    elif type(listName[listPosition]) is list:
+        nameToReturn = listName[listPosition][counter]
+    return nameToReturn
+
+def formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond):
+    #if the parts parameter is a list:
+    if (type(partsInHeader) is list):
+        #Make all lists the same length as the parts list
+        for i in headerStatQtyCond:
+            if (type(i) is list and len(i) < len(partsInHeader)):
+                while len(i) < len(partsInHeader):
+                    #append last item in list to end of list until it is the same length as parts list
+                    i.append(i[-1])
+
+    #For each item in the parts list, format an insert statement
+    count = 0
+    while count < len(partsInHeader):
+        #status
+        status = returnListIndexValOrString(headerStatQtyCond, 0, count)
+        #Quantity
+        quantity = returnListIndexValOrString(headerStatQtyCond, 1, count)
+        #Conditions
+        condition = returnListIndexValOrString(headerStatQtyCond, 2, count)
+        #Part
+        part = partsInHeader[count]
+        print('INSERT:',status, quantity, condition, part)
+        #increment the counter
+        count += 1
+
+def formatHeaderOnlyForInsert(completeHeaderInfo):
     #name items in completeHeaderInfo list
     partsInHeader = completeHeaderInfo[0]
     conditionsInHeader = completeHeaderInfo[1]
     statusInHeader = completeHeaderInfo[2]
     quantityInSubject =  completeHeaderInfo[3]
+    print('\n**HEADER INFO ONLY**')
+    #Apply defaults for None type's in header
+    if partsInHeader == None:
+        return
+    if conditionsInHeader == None:
+        conditionsInHeader = 'REF'
+    if statusInHeader == None:
+        statusInHeader = 'RFQ'
+    if quantityInSubject == None:
+        quantityInSubject = 1
 
-    #Loop through the body objects and complete header info
+    #If singular values only (no list values) in header
+    if all(type(i) != list for i in completeHeaderInfo):
+        print('INSERT:',statusInHeader, quantityInSubject, conditionsInHeader, partsInHeader)
+    #If there are lists in the header
+    else:
+        print('!!! FOUND LIST IN HEADER')
+        #IF parts param is a list::
+        headerStatQtyCond = [statusInHeader, quantityInSubject, conditionsInHeader]
+        formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond)
+        #TODO:
+        #If parts is a string and other params are lists
+
+
+
+def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
+    #Loop through the body objects and completeHeaderInfo List
     bodyResultsLength = len(allBodyObjects)
     #If no info objects returned from email body
     if bodyResultsLength == 0:
-        print('\n**HEADER INFO ONLY**')
-        #Apply defaults for None type's in header
-        if partsInHeader == None:
-            return
-        if conditionsInHeader == None:
-            conditionsInHeader = 'REF'
-        if statusInHeader == None:
-            statusInHeader = 'RFQ'
-        if quantityInSubject == None:
-            quantityInSubject = 1
-
-        #If singular values only (no list values) in header
-        if all(type(i) != list for i in completeHeaderInfo):
-            print('INSERT:',statusInHeader, quantityInSubject, conditionsInHeader, partsInHeader)
-        #If there are lists in the header
-        else:
-            print('!!! FOUND LIST IN HEADER')
-            #if all four info paremeters are lists
-            if all(type(i) == list for i in completeHeaderInfo):
-                #TODO: FIGURE OUT WHAT TO DO HERE
-                print(len(statusInHeader), len(quantityInSubject), len(conditionsInHeader), len(partsInHeader))
-            #if some are lists and some are strings
-            elif 
-
+        #Format Header Info for insertion
+        formatHeaderOnlyForInsert(completeHeaderInfo)
 
     #If info objects have been returned from email body
     elif bodyResultsLength > 0:
         print('\nBODY')
         for item in allBodyObjects:
             item.displayLineInfo()
-
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

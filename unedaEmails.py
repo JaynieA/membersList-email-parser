@@ -332,15 +332,22 @@ def formatHeaderOnlyForInsert(completeHeaderInfo):
 
 #HEADER AND BODY COMBO INSERT FUNCTIONS
 
-#4 types: part, condition, quantity, status
+#4 infoType possibilities: part, condition, quantity, status
 def compareOrCombine(thing1, thing2, infoType):
     result = None
+    partsList = []
     #run quantity through as a string value if not None
     if infoType == 'quantity':
         if thing1 != None:
             thing1 = str(thing1)
-        elif thing2 != None:
+        if thing2 != None:
             thing2 = str(thing2)
+    #if parts from header are a list:
+    if infoType == 'part' and type(thing1) == list:
+        partsList = thing1
+        if thing2 != None and thing2 not in partsList:
+            partsList.append(thing2)
+        result = partsList
     #compare or combine values
     if thing1 == thing2:
         result = thing1
@@ -349,12 +356,13 @@ def compareOrCombine(thing1, thing2, infoType):
     elif thing2 == None and thing1 != None:
         result = thing1
     elif thing1 != None and thing2 != None:
-        result = [thing1, thing2]
+        #keep only the first value if values differ
+        result = thing1
     #set to default values if nonetypes are present
     if thing1 is None and thing2 is None:
+        #print error if there is no part so no insert happens
         if infoType is 'part':
-            #TODO: handle error if part is none, don't insert
-            print('ERROR: PART IS NONE')
+            result = 'ERROR'
         if infoType is 'condition':
             result = 'REF'
         elif infoType is 'quantity':
@@ -364,15 +372,27 @@ def compareOrCombine(thing1, thing2, infoType):
     return result
 
 def formatSimpleHeaderBodyInsertCombination(completeHeaderInfo, allBodyObjects):
+    #format inserts for header and one body object
     if len(allBodyObjects) == 1:
         for item in allBodyObjects:
             status = compareOrCombine(completeHeaderInfo[2], item.status, 'status')
             quantity = compareOrCombine(completeHeaderInfo[3], item.quantity, 'quantity')
             condition = compareOrCombine(completeHeaderInfo[1], item.conditions, 'condition')
-            part = compareOrCombine(completeHeaderInfo[0], item.parts, 'part')
+            parts = compareOrCombine(completeHeaderInfo[0], item.parts, 'part')
+            if parts != 'ERROR':
+                #if parts are a list
+                if type(parts) == list:
+                    #Print one insert statement per part
+                    for part in parts:
+                        print('INSERT:', status, quantity, condition, part)
+                #if parts is a single value, print one insert statement
+                elif type(parts) == str:
+                    print('INSERT:', status, quantity, condition, parts)
+    #TODO: finish logic here for 2 body objects + header
+    if len(allBodyObjects) == 2:
+        print('2 Body Objects')
+        #for item in allBodyObjects:
 
-            print('INSERT:', status, quantity, condition, part)
-            #add logic if one of these results is a list
 
 
 def formatInsertFromHeaderAndBody(allBodyObjects, completeHeaderInfo):

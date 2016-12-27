@@ -331,17 +331,64 @@ def formatHeaderOnlyForInsert(completeHeaderInfo):
             formatInsertFromHeaderWithListsNotParts(partsInHeader, headerStatQtyCond)
 
 #HEADER AND BODY COMBO INSERT FUNCTIONS
+
+#4 types: part, condition, quantity, status
+def compareOrCombine(thing1, thing2, infoType):
+    result = None
+    #run quantity through as a string value if not None
+    if infoType == 'quantity':
+        if thing1 != None:
+            thing1 = str(thing1)
+        elif thing2 != None:
+            thing2 = str(thing2)
+    #compare or combine values
+    if thing1 == thing2:
+        result = thing1
+    elif thing1 == None and thing2 != None:
+        result = thing2
+    elif thing2 == None and thing1 != None:
+        result = thing1
+    elif thing1 != None and thing2 != None:
+        result = [thing1, thing2]
+    #set to default values if nonetypes are present
+    if thing1 is None and thing2 is None:
+        if infoType is 'part':
+            #TODO: handle error if part is none, don't insert
+            print('ERROR: PART IS NONE')
+        if infoType is 'condition':
+            result = 'REF'
+        elif infoType is 'quantity':
+            result = 1
+        elif infoType is 'status':
+            result = 'RFQ'
+    return result
+
+def formatSimpleHeaderBodyInsertCombination(completeHeaderInfo, allBodyObjects):
+    if len(allBodyObjects) == 1:
+        for item in allBodyObjects:
+            status = compareOrCombine(completeHeaderInfo[2], item.status, 'status')
+            quantity = compareOrCombine(completeHeaderInfo[3], item.quantity, 'quantity')
+            condition = compareOrCombine(completeHeaderInfo[1], item.conditions, 'condition')
+            part = compareOrCombine(completeHeaderInfo[0], item.parts, 'part')
+
+            print('INSERT:', status, quantity, condition, part)
+            #add logic if one of these results is a list
+
+
 def formatInsertFromHeaderAndBody(allBodyObjects, completeHeaderInfo):
     print('---HEADER AND BODY INFO---')
     print('From header:',completeHeaderInfo)
+    #display info for all body objects
     for item in allBodyObjects:
-        #print(item.parts, item.conditions, item.quantity, item.status)
         item.displayLineInfo()
     #If there are 1-2 objects in allBodyObjects:
     if len(allBodyObjects) <= 2:
-        print('Run SIMPLE formatSimpleHeaderBodyInsertCombination')
+        #TODO: finish logic here
+        formatSimpleHeaderBodyInsertCombination(completeHeaderInfo, allBodyObjects)
+
     #If there are more than 2 objects in allBodyObjects:
     elif len(allBodyObjects) >= 3:
+        #TODO: finish logic here
         print('Run COMPLEX formatComplexHeaderBodyInsertCombination')
 
 

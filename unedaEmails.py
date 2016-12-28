@@ -193,7 +193,7 @@ def getInfoFromHeader(subjectLine):
     #quantityInSubject = condenseList(quantityInSubject)
     print('Quantity:', quantityInSubject)
     #Save all info from parsing the header into a list and return it
-    return [partsInSubject, conditionsInSubject, statusInSubject, quantityInSubject]
+    return [partsInSubject, conditionsInSubject, quantityInSubject, statusInSubject]
 
 def getInfoFromBody(emailBody):
     print('\nBODY')
@@ -238,11 +238,31 @@ def combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo):
     #Status
     totalStatus = combineHeaderAndBodyInfo(statusInSubject, statusFromBody)
     totalStatus = setDefaultIfNoneType(totalStatus, 'status')
-    print('Status:', totalStatus)
+    print('Status:', totalStatus, '\n')
     return [totalParts, totalCondition, totalQuantity, totalStatus]
 
 def formatInsertStatements(totalCombinedInfoList):
-    print('in formatInsertStatements', totalCombinedInfoList)
+    #separate out variables from totalCombinedInfoList
+    totalParts = totalCombinedInfoList[0]
+    totalCondition = totalCombinedInfoList[1]
+    totalQuantity = totalCombinedInfoList[2]
+    totalStatus = totalCombinedInfoList[3]
+
+    #if totalParts is valid, continue
+    if totalParts != 'ERROR':
+        #Make all list lenghts the same length as parts list for an accurate number of inserts
+        secondaryInfo = [totalCondition, totalStatus, totalQuantity]
+        for infoType in secondaryInfo:
+            #If it's not as long, make it longer by duplicating last in list
+            while len(totalParts) > len(infoType):
+                infoType.append(infoType[-1])
+        #initialize counter variable
+        counter = 0
+        #For as long as there are parts, continue to make inserts
+        for part in totalParts:
+            print('INSERT:', totalStatus[counter], totalQuantity[counter], totalCondition[counter], part)
+            #increment the counter
+            counter += 1
 
 
 def parseRawEmailMessages(msg, data, emailNumber):
@@ -279,7 +299,6 @@ def parseRawEmailMessages(msg, data, emailNumber):
 
     #COMBINE parsed info from head and body
     totalCombinedInfo = combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo)
-    print(totalCombinedInfo)
 
     #Format insert statements for the database
     formatInsertStatements(totalCombinedInfo)

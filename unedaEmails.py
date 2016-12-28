@@ -175,44 +175,31 @@ def setDefaultIfNoneType(infoList, type):
     return infoList
 
 def getInfoFromHeader(subjectLine):
-    print('\nHEADER')
     #Parts
     partsInSubject = getParts(subjectLine)
-    #partsInSubject = condenseList(partsInSubject)
-    print('Parts:', partsInSubject)
     #Condition
     conditionsInSubject = getCondition(subjectLine)
-    #conditionsInSubject = condenseList(conditionsInSubject)
-    print('Conditions:', conditionsInSubject)
     #Status
     statusInSubject = getStatus(subjectLine)
-    #statusInSubject = condenseList(statusInSubject)
-    print('Status:', statusInSubject)
     #Quantity
     quantityInSubject = getQuantity(subjectLine)
-    #quantityInSubject = condenseList(quantityInSubject)
-    print('Quantity:', quantityInSubject)
+    #print('Parts:',partsInSubject, '\nConditions:', conditionsInSubject, '\nQuantity:', quantityInSubject, '\nStatus:', statusInSubject)
     #Save all info from parsing the header into a list and return it
     return [partsInSubject, conditionsInSubject, quantityInSubject, statusInSubject]
 
 def getInfoFromBody(emailBody):
-    print('\nBODY')
     #Parts
     partsFromBody = getParts(emailBody)
-    print('Parts:', partsFromBody)
     #Condition
     conditionsFromBody = getCondition(emailBody)
-    print('Conditions:', conditionsFromBody)
     #Quantity
     quantityFromBody = getQuantity(emailBody)
-    print('Quantity:', quantityFromBody)
     #Status
     statusFromBody = getStatus(emailBody)
-    print('Status:', statusFromBody)
+    #print('Parts:', partsFromBody, '\nConditions:', conditionsFromBody, '\nQuantity:', quantityFromBody, '\nStatus:', statusFromBody)
     return [partsFromBody, conditionsFromBody, quantityFromBody, statusFromBody]
 
 def combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo):
-    print('\nTOTALS:')
     #define header variables
     partsInSubject = completeHeaderInfo[0]
     conditionsInSubject = completeHeaderInfo[1]
@@ -226,28 +213,24 @@ def combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo):
     #Parts
     totalParts = combineHeaderAndBodyInfo(partsInSubject, partsFromBody)
     totalParts = setDefaultIfNoneType(totalParts, 'part')
-    print('Parts:',totalParts)
     #Conditions
     totalCondition = combineHeaderAndBodyInfo(conditionsInSubject, conditionsFromBody)
     totalCondition = setDefaultIfNoneType(totalCondition, 'condition')
-    print('Conditions:', totalCondition)
     #Quantity
     totalQuantity = combineHeaderAndBodyInfo(quantityInSubject, quantityFromBody)
     totalQuantity = setDefaultIfNoneType(totalQuantity, 'quantity')
-    print('Quantity:', totalQuantity)
     #Status
     totalStatus = combineHeaderAndBodyInfo(statusInSubject, statusFromBody)
     totalStatus = setDefaultIfNoneType(totalStatus, 'status')
-    print('Status:', totalStatus, '\n')
+    #print('Parts:', totalParts, '\nConditions:', totalCondition, '\nQuantity:', totalQuantity, '\nStatus:', totalStatus)
     return [totalParts, totalCondition, totalQuantity, totalStatus]
 
-def formatInsertStatements(totalCombinedInfoList):
+def formatDetailInsertStatements(totalCombinedInfoList):
     #separate out variables from totalCombinedInfoList
     totalParts = totalCombinedInfoList[0]
     totalCondition = totalCombinedInfoList[1]
     totalQuantity = totalCombinedInfoList[2]
     totalStatus = totalCombinedInfoList[3]
-
     #if totalParts is valid, continue
     if totalParts != 'ERROR':
         #Make all list lenghts the same length as parts list for an accurate number of inserts
@@ -260,54 +243,55 @@ def formatInsertStatements(totalCombinedInfoList):
         counter = 0
         #For as long as there are parts, continue to make inserts
         for part in totalParts:
-            print('INSERT:', totalStatus[counter], totalQuantity[counter], totalCondition[counter], part)
+            print('Line #',(counter+1))
+            print('DETAIL INSERT:',totalQuantity[counter], totalCondition[counter], part)
             #increment the counter
             counter += 1
 
+def formatMainInsertStatement(mainInsertInfo):
+    postDate = mainInsertInfo[0]
+    postTime = mainInsertInfo[1]
+    senderEmail = mainInsertInfo[2]
+    senderName = mainInsertInfo[3]
+    status = mainInsertInfo[4]
+    print('MAIN INSERT:', postDate, postTime, senderEmail, senderName, status)
 
 def parseRawEmailMessages(msg, data, emailNumber):
     #Print Position of Current Email that is parsing
     print('Email #:', emailNumber)
-
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
-    #print('Subject Line:' ,  subjectLine)
-
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
-    print('Sender Name:', senderName)
     senderEmail = getSenderInfo(msg)[1]
-    print('Sender Email:', senderEmail)
-
     #Get and Print Message DATE & TIME
     date = getDateTime(msg)[0]
-    print('Date:', date)
     time = getDateTime(msg)[1]
-    print('Time:', time)
-
     #Parse SUBJECT LINE for parts, condition, status, quantity
     completeHeaderInfo = getInfoFromHeader(subjectLine)
-
     #Get the body of the email
     emailBody = getEmailTextFromBody(data)
     #Format the text of the email body
     emailBody = formatEmailBody(emailBody, senderName)
     #print(emailBody)
-
     #Parse EMAIL BODY for parts, condition, status, quantity
     completeBodyInfo = getInfoFromBody(emailBody)
-
     #COMBINE parsed info from head and body
     totalCombinedInfo = combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo)
+    #TODO: get company name from person email
+
+    #TODO: either get row number from db or figure out how to generate and pass in
+    #insert with: postDate, postTime, senderEmail, senderName, companyName, contactId, status
+    mainStatus = totalCombinedInfo[3][0]
+    mainInsertInfo = [date, time, senderEmail, senderName, mainStatus]
+    formatMainInsertStatement(mainInsertInfo)
 
     #Format insert statements for the database
-    formatInsertStatements(totalCombinedInfo)
-
-    #TODO: get company name from person email
+    #TODO: send along into below function: emailNumber, lineCounter, part, qty, condition
+    formatDetailInsertStatements(totalCombinedInfo)
 
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
-
 
 #Retrieves emails and initializes parsing
 def retrieveEmails(host):

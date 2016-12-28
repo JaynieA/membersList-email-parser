@@ -12,32 +12,10 @@ from connection import *
 #Create an IMAP4 instance (with SSL for security) that connects to the gmail server
 M = imaplib.IMAP4_SSL('imap.gmail.com')
 
-#CLASSES
-#Create a class for the lines in the email body
-class EmailBodyLine:
-    "The information contained in a line of the email body"
-    lineCount = 0
-    #constructor
-    def __init__(self, partList, conditionList, quantityList, statusList):
-        self.parts = partList
-        self.conditions = conditionList
-        self.quantity = quantityList
-        self.status = statusList
-    #Method
-    def displayLineInfo(self):
-        print ('Parts:', self.parts, ', Conditions:', self.conditions, ', Quantity:', self.quantity, ', Status:', self.status)
-
 ##FUNCTIONS
 #initializes app
 def init():
     loginToEmail(M, EMAIL_ACCOUNT, EMAIL_FOLDER, PASSWORD)
-
-def condenseList(listName):
-    if len(listName) == 0:
-        listName = None
-    elif len(listName) == 1:
-        listName = listName[0]
-    return listName
 
 def formatEmailBody(emailBody, senderName):
     #   Get rid of everything after 'Uneda Code of Conduct Policy'
@@ -52,7 +30,7 @@ def formatEmailBody(emailBody, senderName):
         if word in emailBody:
             emailBody = emailBody.split(word)[0]
     #get rid of characters in list
-    for ch in ['=3D', '=A0', '*', '.', '(', ')', '=']:
+    for ch in ['=3D', '=A0', '*', '.', '(', ')', '=', ':']:
         if ch in emailBody:
             emailBody=emailBody.replace(ch,'')
     #Transform email body to all uppercase
@@ -76,6 +54,12 @@ def getCondition(string):
         for condition in ['NIB', 'NEW', 'NOB', 'REF', 'USED', 'REFURB']:
             if word.startswith(condition):
                 if word == 'REFURB':
+                    word = 'REF'
+                if word == 'NEW':
+                    word = 'NIB'
+                if word.startswith('USED'):
+                    word = 'USED'
+                if word.startswith('REF'):
                     word = 'REF'
                 conditions.append(word)
     return conditions
@@ -131,13 +115,13 @@ def getSubjectLine(msg):
     return subject
 
 def getQuantity(string):
-    #Use to parse the email subject ONLY
     #Gets clear number not followed by "/" or a digit followed by "/"
-    quantity = re.findall('\s+(\d+(?!/)(?!\d/))', string)
-    for number in quantity:
-        #deletes numbers added to quantity list with lenghts over 4
-        if len(number) > 4:
-            quantity.remove(number)
+    allNumbers = re.findall('\s+(\d+(?!/)(?!\d/))', string)
+    quantity = []
+    #append all numbers under 100 to quantity list
+    for number in allNumbers:
+        if len(number) < 3:
+            quantity.append(number)
     return quantity
 
 def loginToEmail(host, account, folder, password):
@@ -161,270 +145,149 @@ def loginToEmail(host, account, folder, password):
     else:
         print("ERROR: Unable to open UNEDA mailbox ", rv)
 
-def splitAndParseEmailBody(emailBody, emailNumber):
-    #SPLIT EMAIL BODY INTO LINES TO PARSE
-    emailBodyByLine = emailBody.split('\n')
-    lines = []
-    for line in emailBodyByLine:
-        line = line.strip()
-        line = line.replace('\t', ' ')
-        if line != '':
-            lines.append(line)
-    #print('All Email Lines :',lines)
+def combineHeaderAndBodyInfo(headerInfo, bodyInfo):
+    totalParts = []
+    #If item not already in totalParts list, add it
+    #Do this for info from the header
+    if headerInfo != None and headerInfo != []:
+        for part in headerInfo:
+            if part not in totalParts:
+                totalParts.append(part)
+    #And info from the body
+    if bodyInfo != None and bodyInfo != []:
+        for part in bodyInfo:
+            if part not in totalParts:
+                totalParts.append(part)
+    return totalParts
 
-    #hold all objects created from body parsing in list
-    allBodyObjects = []
-    #For each line in the email, find the following:
-    lineCounter = 1
-    for line in lines:
-        #Condition
-        conditionInLine = getCondition(line)
-        conditionInLine = condenseList(conditionInLine)
-        #Part Number beginning with 'AIR-'
-        partInLine = getParts(line)
-        partInLine = condenseList(partInLine)
-        #Quantity
-        quantityInLine = [int(s) for s in line.split() if s.isdigit() and len(s) < 4]
-        quantityInLine = condenseList(quantityInLine)
-        #Status
-        statusInLine = getStatus(line)
-        if statusInLine == None:
-            statusInLine = []
-        statusInLine = condenseList(statusInLine)
+def setDefaultIfNoneType(infoList, type):
+    #possibilities for type: part, condition, quantity, status
+    if infoList is None or infoList == []:
+        if type is 'part':
+            #TODO: make sure there is logic for this error before db inserts
+            infoList = 'ERROR'
+        if type is 'condition':
+            infoList = ['REF']
+        if type is 'quantity':
+            infoList = ['1']
+        if type is 'status':
+            infoList = ['RFQ']
+    return infoList
 
-        #Make an object of the findings from the line and display it
-        # IF all lists are not empty, use constructor to make the object
-        if partInLine == None and conditionInLine == None and quantityInLine == None and statusInLine == None:
-            pass
-        else:
-            #   concatenate a name for the object
-            objName = str(emailNumber) + '.' + str(lineCounter)
-            #print(objName)
-            objName = EmailBodyLine(partInLine, conditionInLine, quantityInLine, statusInLine)
-            #   call it's method displayLineInfo to display the new object's info
-            #objName.displayLineInfo()
-            allBodyObjects.append(objName)
-            #increment the line counter
-            lineCounter += 1
-    return allBodyObjects
+def getInfoFromHeader(subjectLine):
+    print('\nHEADER')
+    #Parts
+    partsInSubject = getParts(subjectLine)
+    #partsInSubject = condenseList(partsInSubject)
+    print('Parts:', partsInSubject)
+    #Condition
+    conditionsInSubject = getCondition(subjectLine)
+    #conditionsInSubject = condenseList(conditionsInSubject)
+    print('Conditions:', conditionsInSubject)
+    #Status
+    statusInSubject = getStatus(subjectLine)
+    #statusInSubject = condenseList(statusInSubject)
+    print('Status:', statusInSubject)
+    #Quantity
+    quantityInSubject = getQuantity(subjectLine)
+    #quantityInSubject = condenseList(quantityInSubject)
+    print('Quantity:', quantityInSubject)
+    #Save all info from parsing the header into a list and return it
+    return [partsInSubject, conditionsInSubject, statusInSubject, quantityInSubject]
+
+def getInfoFromBody(emailBody):
+    print('\nBODY')
+    #Parts
+    partsFromBody = getParts(emailBody)
+    print('Parts:', partsFromBody)
+    #Condition
+    conditionsFromBody = getCondition(emailBody)
+    print('Conditions:', conditionsFromBody)
+    #Quantity
+    quantityFromBody = getQuantity(emailBody)
+    print('Quantity:', quantityFromBody)
+    #Status
+    statusFromBody = getStatus(emailBody)
+    print('Status:', statusFromBody)
+    return [partsFromBody, conditionsFromBody, quantityFromBody, statusFromBody]
+
+def combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo):
+    print('\nTOTALS:')
+    #define header variables
+    partsInSubject = completeHeaderInfo[0]
+    conditionsInSubject = completeHeaderInfo[1]
+    quantityInSubject = completeHeaderInfo[2]
+    statusInSubject = completeHeaderInfo[3]
+    #define body variables
+    partsFromBody = completeBodyInfo[0]
+    conditionsFromBody = completeBodyInfo[1]
+    quantityFromBody = completeBodyInfo[2]
+    statusFromBody = completeBodyInfo[3]
+    #Parts
+    totalParts = combineHeaderAndBodyInfo(partsInSubject, partsFromBody)
+    totalParts = setDefaultIfNoneType(totalParts, 'part')
+    print('Parts:',totalParts)
+    #Conditions
+    totalCondition = combineHeaderAndBodyInfo(conditionsInSubject, conditionsFromBody)
+    totalCondition = setDefaultIfNoneType(totalCondition, 'condition')
+    print('Conditions:', totalCondition)
+    #Quantity
+    totalQuantity = combineHeaderAndBodyInfo(quantityInSubject, quantityFromBody)
+    totalQuantity = setDefaultIfNoneType(totalQuantity, 'quantity')
+    print('Quantity:', totalQuantity)
+    #Status
+    totalStatus = combineHeaderAndBodyInfo(statusInSubject, statusFromBody)
+    totalStatus = setDefaultIfNoneType(totalStatus, 'status')
+    print('Status:', totalStatus)
+    return [totalParts, totalCondition, totalQuantity, totalStatus]
+
+def formatInsertStatements(totalCombinedInfoList):
+    print('in formatInsertStatements', totalCombinedInfoList)
+
 
 def parseRawEmailMessages(msg, data, emailNumber):
     #Print Position of Current Email that is parsing
     print('Email #:', emailNumber)
+
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
     #print('Subject Line:' ,  subjectLine)
+
     #Get Email Sender's Info
     senderName = getSenderInfo(msg)[0]
+    print('Sender Name:', senderName)
+    senderEmail = getSenderInfo(msg)[1]
+    print('Sender Email:', senderEmail)
+
     #Get and Print Message DATE & TIME
     date = getDateTime(msg)[0]
     print('Date:', date)
     time = getDateTime(msg)[1]
     print('Time:', time)
-    print('Sender Name:', senderName)
-    senderEmail = getSenderInfo(msg)[1]
-    print('Sender Email:', senderEmail)
-    #Parse Subject Line for parts, condition, status
-    print('\nHEADER')
-    #Parts
-    partsInSubject = getParts(subjectLine)
-    partsInSubject = condenseList(partsInSubject)
-    print('Parts:', partsInSubject)
-    #Condition
-    conditionsInSubject = getCondition(subjectLine)
-    conditionsInSubject = condenseList(conditionsInSubject)
-    print('Conditions:', conditionsInSubject)
-    #Status
-    statusInSubject = getStatus(subjectLine)
-    statusInSubject = condenseList(statusInSubject)
-    print('Status:', statusInSubject)
-    #Quantity
-    quantityInSubject = getQuantity(subjectLine)
-    quantityInSubject = condenseList(quantityInSubject)
-    print('Quantity:', quantityInSubject)
+
+    #Parse SUBJECT LINE for parts, condition, status, quantity
+    completeHeaderInfo = getInfoFromHeader(subjectLine)
+
     #Get the body of the email
     emailBody = getEmailTextFromBody(data)
     #Format the text of the email body
     emailBody = formatEmailBody(emailBody, senderName)
     #print(emailBody)
-    allBodyObjects = splitAndParseEmailBody(emailBody, emailNumber)
-    #Save all info from parsing the header into a list
-    completeHeaderInfo = [partsInSubject, conditionsInSubject, statusInSubject, quantityInSubject]
-    #Send all body objects and header info to be organized
-    organizeInfoToInsert(allBodyObjects, completeHeaderInfo)
+
+    #Parse EMAIL BODY for parts, condition, status, quantity
+    completeBodyInfo = getInfoFromBody(emailBody)
+
+    #COMBINE parsed info from head and body
+    totalCombinedInfo = combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo)
+    print(totalCombinedInfo)
+
+    #Format insert statements for the database
+    formatInsertStatements(totalCombinedInfo)
+
+    #TODO: get company name from person email
 
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
-
-
-#FUNCTIONS FOR FORMATTING HEADER ONLY FOR DB INSERT
-def returnListIndexValOrString(listName, listPosition, counter):
-    if type(listName[listPosition]) is str:
-        nameToReturn = listName[0]
-    elif type(listName[listPosition]) is list:
-        nameToReturn = listName[listPosition][counter]
-    return nameToReturn
-
-def formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond):
-    #Make all lists the same length as the parts list
-    for i in headerStatQtyCond:
-        if (type(i) is list and len(i) < len(partsInHeader)):
-            while len(i) < len(partsInHeader):
-                #append last item in list to end of list until it is the same length as parts list
-                i.append(i[-1])
-    #For each item in the parts list, format an insert statement
-    count = 0
-    while count < len(partsInHeader):
-        #status
-        status = returnListIndexValOrString(headerStatQtyCond, 0, count)
-        #Quantity
-        quantity = returnListIndexValOrString(headerStatQtyCond, 1, count)
-        #Conditions
-        condition = returnListIndexValOrString(headerStatQtyCond, 2, count)
-        #Part
-        part = partsInHeader[count]
-        print('INSERT:',status, quantity, condition, part)
-        #increment the counter
-        count += 1
-
-def formatInsertFromHeaderWithListsNotParts(partsInHeader, headerStatQtyCond):
-    #insert first item in params list as params
-    newList=[]
-    for param in headerStatQtyCond:
-        if type(param) is list:
-            newList.append(param[0])
-        elif type(param) is str:
-            newList.append(param)
-    status = newList[0]
-    quantity = newList[1]
-    condition = newList[2]
-    print('INSERT:',status, quantity, condition,  partsInHeader)
-
-def formatHeaderOnlyForInsert(completeHeaderInfo):
-    #name items in completeHeaderInfo list
-    partsInHeader = completeHeaderInfo[0]
-    conditionsInHeader = completeHeaderInfo[1]
-    statusInHeader = completeHeaderInfo[2]
-    quantityInSubject =  completeHeaderInfo[3]
-    print('\n**HEADER INFO ONLY**')
-    #Apply defaults for None type's in header
-    if partsInHeader == None:
-        return
-    if conditionsInHeader == None:
-        conditionsInHeader = 'REF'
-    if statusInHeader == None:
-        statusInHeader = 'RFQ'
-    if quantityInSubject == None:
-        quantityInSubject = 1
-
-    #If singular values only (no list values) in header
-    if all(type(i) != list for i in completeHeaderInfo):
-        print('INSERT:',statusInHeader, quantityInSubject, conditionsInHeader, partsInHeader)
-    #If there are lists in the header
-    else:
-        headerStatQtyCond = [statusInHeader, quantityInSubject, conditionsInHeader]
-        #IF parts param is a list:
-        if (type(partsInHeader) is list):
-            formatInsertFromHeaderWithPartsList(partsInHeader, headerStatQtyCond)
-        #If parts is a string and other params are lists
-        else:
-            formatInsertFromHeaderWithListsNotParts(partsInHeader, headerStatQtyCond)
-
-#HEADER AND BODY COMBO INSERT FUNCTIONS
-
-#4 infoType possibilities: part, condition, quantity, status
-def compareOrCombine(thing1, thing2, infoType):
-    result = None
-    partsList = []
-    #run quantity through as a string value if not None
-    if infoType == 'quantity':
-        if thing1 != None:
-            thing1 = str(thing1)
-        if thing2 != None:
-            thing2 = str(thing2)
-    #if parts from header are a list:
-    if infoType == 'part' and type(thing1) == list:
-        partsList = thing1
-        if thing2 != None and thing2 not in partsList:
-            partsList.append(thing2)
-        result = partsList
-    #compare or combine values
-    if thing1 == thing2:
-        result = thing1
-    elif thing1 == None and thing2 != None:
-        result = thing2
-    elif thing2 == None and thing1 != None:
-        result = thing1
-    elif thing1 != None and thing2 != None:
-        #keep only the first value if values differ
-        result = thing1
-    #set to default values if nonetypes are present
-    if thing1 is None and thing2 is None:
-        #print error if there is no part so no insert happens
-        if infoType is 'part':
-            result = 'ERROR'
-        if infoType is 'condition':
-            result = 'REF'
-        elif infoType is 'quantity':
-            result = 1
-        elif infoType is 'status':
-            result = 'RFQ'
-    return result
-
-def formatSimpleHeaderBodyInsertCombination(completeHeaderInfo, allBodyObjects):
-    #format inserts for header and one body object
-    if len(allBodyObjects) == 1:
-        for item in allBodyObjects:
-            status = compareOrCombine(completeHeaderInfo[2], item.status, 'status')
-            quantity = compareOrCombine(completeHeaderInfo[3], item.quantity, 'quantity')
-            condition = compareOrCombine(completeHeaderInfo[1], item.conditions, 'condition')
-            parts = compareOrCombine(completeHeaderInfo[0], item.parts, 'part')
-            if parts != 'ERROR':
-                #if parts are a list
-                if type(parts) == list:
-                    #Print one insert statement per part
-                    for part in parts:
-                        print('INSERT:', status, quantity, condition, part)
-                #if parts is a single value, print one insert statement
-                elif type(parts) == str:
-                    print('INSERT:', status, quantity, condition, parts)
-    #TODO: finish logic here for 2 body objects + header
-    if len(allBodyObjects) == 2:
-        print('2 Body Objects')
-        #for item in allBodyObjects:
-
-
-
-def formatInsertFromHeaderAndBody(allBodyObjects, completeHeaderInfo):
-    print('---HEADER AND BODY INFO---')
-    print('From header:',completeHeaderInfo)
-    #display info for all body objects
-    for item in allBodyObjects:
-        item.displayLineInfo()
-    #If there are 1-2 objects in allBodyObjects:
-    if len(allBodyObjects) <= 2:
-        #TODO: finish logic here
-        formatSimpleHeaderBodyInsertCombination(completeHeaderInfo, allBodyObjects)
-
-    #If there are more than 2 objects in allBodyObjects:
-    elif len(allBodyObjects) >= 3:
-        #TODO: finish logic here
-        print('Run COMPLEX formatComplexHeaderBodyInsertCombination')
-
-
-#DB INSERT FORMAT FUNCTION
-def organizeInfoToInsert(allBodyObjects, completeHeaderInfo):
-    #Loop through the body objects and completeHeaderInfo List
-    bodyResultsLength = len(allBodyObjects)
-    #If no info objects returned from email body
-    if bodyResultsLength == 0:
-        #Format Header Info for insertion
-        formatHeaderOnlyForInsert(completeHeaderInfo)
-    #If info objects have been returned from email body
-    elif bodyResultsLength > 0:
-        print('\nBODY')
-        formatInsertFromHeaderAndBody(allBodyObjects, completeHeaderInfo)
-
 
 
 #Retrieves emails and initializes parsing

@@ -1,7 +1,7 @@
 
 #Description
 
-Email parser for Uneda Member List Emails. Runs approximately every 2 minutes to parse data from emails received, and insert it into existing Microsoft Access Database.
+Email parser for Uneda Member List Emails. Runs every two minutes (approximately) to parse data from emails received, and insert it into existing Microsoft Access Database.
 
 ##Requirements to Run
 
@@ -15,7 +15,7 @@ PASSWORD = 'your password here'
 connStr = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=yourDatabaseNameHere.accdb;'
 ```
 
-* Existing Database in Microsoft Access, set up similar to the one in ERD below
+* Existing Database in Microsoft Access
 
 <p align="center">
   <img src="email-parser-erd.png?raw=true" alt="ERD"/>

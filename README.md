@@ -20,3 +20,11 @@ connStr = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=yourDatabaseNa
 <p align="center">
   <img src="email-parser-erd.png?raw=true" alt="ERD"/>
 </p>
+
+##Technologies:
+
+* Python3
+* pyodbc 
+* imaplib
+* regex
+* Microsoft Access

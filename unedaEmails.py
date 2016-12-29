@@ -1,12 +1,12 @@
 #Import Libraries
 import sys
 import imaplib
-import getpass
-import email
 import email.header
 import datetime
 import re
 from email.utils import parseaddr
+import pyodbc
+import time
 from connection import *
 
 #Create an IMAP4 instance (with SSL for security) that connects to the gmail server
@@ -55,15 +55,45 @@ def combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo):
     #Status
     totalStatus = combineHeaderAndBodyInfo(statusInSubject, statusFromBody)
     totalStatus = setDefaultIfNoneType(totalStatus, 'status')
-    #print('Parts:', totalParts, '\nConditions:', totalCondition, '\nQuantity:', totalQuantity, '\nStatus:', totalStatus)
+    #print('Parts: %s \nConditions: %s \nQuantity: %s \nStatus: %s' % (totalParts, totalCondition,totalQuantity, totalStatus))
     return [totalParts, totalCondition, totalQuantity, totalStatus]
 
-def formatDetailInsertStatements(totalCombinedInfoList):
+def createAndInsertMainRecord(mainInsertInfo):
+    postDate = mainInsertInfo[0]
+    postTime = mainInsertInfo[1]
+    senderEmail = mainInsertInfo[2]
+    senderName = mainInsertInfo[3]
+    companyName = mainInsertInfo[4]
+    contactID = mainInsertInfo[5]
+    status = mainInsertInfo[6]
+    #Print what is being inserted as main record
+    print('Main: %s %s %s %s %s %s %s' % (postDate, postTime, senderEmail, senderName, companyName, contactID, status))
+    #connect to the database
+    connection = pyodbc.connect(connStr)
+    try:
+        #insert a new record
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO tblUnedaListPostingNew (PostDate, PostTime, PersonEmail, PersonName, CompanyNameShort, ContactID, Status) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            cursor.execute(sql, (postDate, postTime, senderEmail, senderName, companyName, contactID, status))
+            #get the id of the record that was just inserted and store it
+            sql = "SELECT Max(tblUnedaListPostingNew.UnedaEmailID) AS MaxOfUnedaEmailID FROM tblUnedaListPostingNew"
+            cursor.execute(sql)
+            currentEmailID = cursor.fetchone()[0]
+    except pyodbc.IntegrityError:
+        print('INREGRITY ERROR - %s %s %s' % (senderName, postDate, postTime))
+    finally:
+        #close the connection to the database
+        connection.close()
+    return currentEmailID
+
+def createAndInsertDetailRecords(totalCombinedInfoList, currentEmailID):
     #separate out variables from totalCombinedInfoList
     totalParts = totalCombinedInfoList[0]
     totalCondition = totalCombinedInfoList[1]
     totalQuantity = totalCombinedInfoList[2]
     totalStatus = totalCombinedInfoList[3]
+    #convert currentEmailID to a float
+    currentEmailID = float(currentEmailID)
     #if totalParts is valid, continue
     if totalParts != 'ERROR':
         #Make all list lenghts the same length as parts list for an accurate number of inserts
@@ -76,13 +106,35 @@ def formatDetailInsertStatements(totalCombinedInfoList):
         counter = 0
         #For as long as there are parts, continue to make inserts
         for part in totalParts:
-            print('Line #',(counter+1))
-            print('DETAIL INSERT:',totalQuantity[counter], totalCondition[counter], part)
+            #Track line number (as a float, or access will error)
+            lineCount = float(counter + 1)
+            print('Detail: %s %s %s' % (totalQuantity[counter], totalCondition[counter], part))
+            #connect to the database
+            connection = pyodbc.connect(connStr)
+            try:
+                #insert details records
+                with connection.cursor() as cursor:
+                    sql = "INSERT INTO tblUnedaListPostingDetailNew (UnedaEmailID, EmailLine, PartID, Qty, Condition) VALUES (?, ?, ?, ?, ?)"
+                    cursor.execute(sql, (currentEmailID, lineCount, part, totalQuantity[counter], totalCondition[counter]))
+            except pyodbc.IntegrityError:
+                   print ("INTEGRITY ERROR - %s %s" % (currentEmailID, lineCount))
+            finally:
+                connection.close()
             #increment the counter
             counter += 1
 
+def deleteAllEmails(folderName):
+    #deletes all emails in the email folder passed in as a param
+    print('Deleting emails in %s...' % folderName)
+    M.select(folderName)
+    typ, data = M.search(None, 'ALL')
+    for num in data[0].split():
+        M.store(num, '+FLAGS', '\\Deleted')
+    M.expunge()
+    M.close()
+
 def formatEmailBody(emailBody, senderName):
-    #   Get rid of everything after 'Uneda Code of Conduct Policy'
+    #Get rid of everything after 'Uneda Code of Conduct Policy'
     emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
     #get rid of everything after the sender's signature (if it exists)
     if senderName != '':
@@ -101,14 +153,6 @@ def formatEmailBody(emailBody, senderName):
     emailBody = emailBody.upper()
     return emailBody
 
-def formatMainInsertStatement(mainInsertInfo):
-    postDate = mainInsertInfo[0]
-    postTime = mainInsertInfo[1]
-    senderEmail = mainInsertInfo[2]
-    senderName = mainInsertInfo[3]
-    status = mainInsertInfo[4]
-    print('MAIN INSERT:', postDate, postTime, senderEmail, senderName, status)
-
 def formatString(string):
     #Transform to uppercase
     string = string.upper()
@@ -117,6 +161,23 @@ def formatString(string):
         if ch in string:
             string=string.replace(ch,'')
     return string
+
+def getCompanyInfo(senderEmail):
+    #Connect to database
+    connection = pyodbc.connect(connStr)
+    try:
+        #Get company name and contact id from database using senderEmail
+        with connection.cursor() as cursor:
+            sql = """SELECT Contact.ContactID, Company.CompanyNameShort FROM Contact INNER JOIN Company ON Contact.CompanyID = Company.CompanyID WHERE (((Contact.Email)= '""" + senderEmail + """'));"""
+            cursor.execute(sql)
+            companyInfo = cursor.fetchone()
+            #Set to misc_reseller as default if senderEmail is not in database
+            if companyInfo == None:
+                companyInfo = [11675, 'Misc_Reseller']
+    finally:
+        #close connection to database
+        connection.close()
+    return companyInfo
 
 def getCondition(string):
     conditions = []
@@ -159,7 +220,7 @@ def getInfoFromHeader(subjectLine):
     statusInSubject = getStatus(subjectLine)
     #Quantity
     quantityInSubject = getQuantity(subjectLine)
-    #print('Parts:',partsInSubject, '\nConditions:', conditionsInSubject, '\nQuantity:', quantityInSubject, '\nStatus:', statusInSubject)
+    #print('Parts: %s \nConditions: %s \nQuantity: %s \nStatus: %s' % (partsInSubject, conditionsInSubject, quantityInSubject, statusInSubject))
     #Save all info from parsing the header into a list and return it
     return [partsInSubject, conditionsInSubject, quantityInSubject, statusInSubject]
 
@@ -172,7 +233,7 @@ def getInfoFromBody(emailBody):
     quantityFromBody = getQuantity(emailBody)
     #Status
     statusFromBody = getStatus(emailBody)
-    #print('Parts:', partsFromBody, '\nConditions:', conditionsFromBody, '\nQuantity:', quantityFromBody, '\nStatus:', statusFromBody)
+    #print('Parts: %s \nConditions: %s \nQuantity: %s \nStatus: %s' % (partsFromBody, conditionsFromBody, quantityFromBody, statusFromBody))
     return [partsFromBody, conditionsFromBody, quantityFromBody, statusFromBody]
 
 def getParts(string):
@@ -232,15 +293,15 @@ def loginToEmail(host, account, folder, password):
         sys.exit(1)
     #Displays info about what account it's signing into and if it's successful
     print(rv, data)
-    #Selects UNEDA mailbox (Marks new messages as read)
+    #Selects mailbox (Marks new messages as read)
     rv, data = host.select(folder, readonly=False)
     if rv == 'OK':
-        print("Processing UNEDA emails..\n")
+        print("Processing emails..\n")
         #Retrieves all emails
         retrieveEmails(host)
         host.close()
     else:
-        print("ERROR: Unable to open UNEDA mailbox ", rv)
+        print("ERROR: Unable to open mailbox ", rv)
 
 def setDefaultIfNoneType(infoList, type):
     #possibilities for type: part, condition, quantity, status
@@ -257,8 +318,6 @@ def setDefaultIfNoneType(infoList, type):
     return infoList
 
 def parseRawEmailMessages(msg, data, emailNumber):
-    #Print Position of Current Email that is parsing
-    print('Email #:', emailNumber)
     #Get Email Subject Line
     subjectLine = formatString(getSubjectLine(msg))
     #Get Email Sender's Info
@@ -278,18 +337,17 @@ def parseRawEmailMessages(msg, data, emailNumber):
     completeBodyInfo = getInfoFromBody(emailBody)
     #COMBINE parsed info from head and body
     totalCombinedInfo = combineCompleteHeadAndBodyInfo(completeHeaderInfo, completeBodyInfo)
-    #TODO: get company name from person email
-
-    #TODO: either get row number from db or figure out how to generate and pass in
-    #insert with: postDate, postTime, senderEmail, senderName, companyName, contactId, status
+    #Get company Info from databae
+    companyInfo = getCompanyInfo(senderEmail)
+    #split companyInfo into contactID and companyName variables
+    contactID = str(companyInfo[0])
+    companyName = companyInfo[1]
+    #Create and Insert Main record, return and save its ID
     mainStatus = totalCombinedInfo[3][0]
-    mainInsertInfo = [date, time, senderEmail, senderName, mainStatus]
-    formatMainInsertStatement(mainInsertInfo)
-
+    mainInsertInfo = [date, time, senderEmail, senderName, companyName, contactID, mainStatus]
+    currentEmailID = createAndInsertMainRecord(mainInsertInfo)
     #Format insert statements for the database
-    #TODO: send along into below function: emailNumber, lineCounter, part, qty, condition
-    formatDetailInsertStatements(totalCombinedInfo)
-
+    createAndInsertDetailRecords(totalCombinedInfo, currentEmailID)
     #Print a dividing line between each email for clarity
     print('~~~~~~~~~~~~~~~~~~~~~~EMAIL END~~~~~~~~~~~~~~~~~~~~~~')
 
@@ -314,7 +372,17 @@ def retrieveEmails(host):
         emailCounter += 1
 
 #Initializes the app
-init();
-
-#Log out of the Email Account
-M.logout()
+while True:
+    print('App Initialized...\n')
+    #initialize login and parsing
+    init()
+    #delete all emails in Inbox
+    deleteAllEmails('Inbox')
+    #delete all emails that were parsed in EMAIL_FOLDER mailbox
+    deleteAllEmails(EMAIL_FOLDER)
+    #log out of email
+    M.logout()
+    #re-initialize class to all reconnect on next login
+    M = imaplib.IMAP4_SSL('imap.gmail.com')
+    #Run Every 2 minutes
+    time.sleep(120)

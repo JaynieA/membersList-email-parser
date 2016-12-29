@@ -1,7 +1,7 @@
 
 Description
 -------------
-Email parser for Uneda Member List Emails. Parses emails received and inserts them into existing Microsoft Access Database
+Email parser for Member List Emails. Parses emails received and inserts them into existing Microsoft Access Database.
 
 Other Requirements to Run
 --------------
@@ -11,6 +11,8 @@ Other Requirements to Run
 EMAIL_ACCOUNT = "your email at gmail dot com"
 EMAIL_FOLDER = "folder name"
 PASSWORD = 'your password here'
+
+connStr = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=yourDatabaseNameHere.accdb;'
 ```
 
 * Existing Database in Microsoft Access

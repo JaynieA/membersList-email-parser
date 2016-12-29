@@ -1,11 +1,11 @@
 
-Description
--------------
-Email parser for Member List Emails. Parses emails received and inserts them into existing Microsoft Access Database.
+#Description
 
-Other Requirements to Run
---------------
-* File named connection.py, containing:
+Email parser for Uneda Member List Emails. Runs approximately every 2 minutes to parse data from emails received, and insert it into existing Microsoft Access Database.
+
+##Requirements to Run
+
+* File named connection.py in root directory, containing:
 
 ```
 EMAIL_ACCOUNT = "your email at gmail dot com"
@@ -15,4 +15,8 @@ PASSWORD = 'your password here'
 connStr = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=yourDatabaseNameHere.accdb;'
 ```
 
-* Existing Database in Microsoft Access
+* Existing Database in Microsoft Access, set up similar to the one in ERD below
+
+<p align="center">
+  <img src="email-parser-erd.png?raw=true" alt="ERD"/>
+</p>

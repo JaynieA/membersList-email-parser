@@ -133,6 +133,22 @@ def deleteAllEmails(folderName):
     M.expunge()
     M.close()
 
+def determineSleepTime():
+    #Get current Time
+    now_time = datetime.datetime.now().time()
+    #Set start time at 6:00 PM
+    start_time = datetime.time(18, 0, 0)
+    #Set end time at 7:00 AM
+    end_time = datetime.time(7, 0, 0)
+    #If it is after 6:00PM, or before 7:00AM
+    if (now_time >= start_time or now_time <= end_time):
+        print('Sleeping for 90 minutes...')
+        return 5400
+    #If it is after 7:00PM and before 6:00PM
+    else:
+        print('sleeping for 2 minutes...')
+        return 120
+
 def formatEmailBody(emailBody, senderName):
     #Get rid of everything after 'Uneda Code of Conduct Policy'
     emailBody = emailBody.split('UNEDA Code of Conduct Policy')[0]
@@ -288,20 +304,23 @@ def loginToEmail(host, account, folder, password):
         rv, data = host.login(account, password)
     #display error message if login fails
     except imaplib.IMAP4.error:
-        print('Login Failed')
+        currentTime = datetime.datetime.now().strftime('%I:%M %p')
+        print('Login Failed at %s' % currentTime)
         #exit or deal with login failure
         sys.exit(1)
     #Displays info about what account it's signing into and if it's successful
     print(rv, data)
-    #Selects mailbox (Marks new messages as read)
+    #Selects UNEDA mailbox (Marks new messages as read)
     rv, data = host.select(folder, readonly=False)
     if rv == 'OK':
-        print("Processing emails..\n")
+        print("Processing UNEDA emails..\n")
+        currentTime = datetime.datetime.now().strftime('%I:%M %p')
+        print('Logged in at %s' % currentTime)
         #Retrieves all emails
         retrieveEmails(host)
         host.close()
     else:
-        print("ERROR: Unable to open mailbox ", rv)
+        print("ERROR: Unable to open UNEDA mailbox ", rv)
 
 def setDefaultIfNoneType(infoList, type):
     #possibilities for type: part, condition, quantity, status
@@ -384,5 +403,5 @@ while True:
     M.logout()
     #re-initialize class to all reconnect on next login
     M = imaplib.IMAP4_SSL('imap.gmail.com')
-    #Run Every 2 minutes
-    time.sleep(120)
+    #Run Every 2 minutes if between 7:01AM-5:59PM, else run every 90 minutes
+    time.sleep(determineSleepTime())

@@ -1,7 +1,7 @@
 
 #Description
 
-Email parser for Uneda Member List Emails. Runs every two minutes (approximately) to parse data from emails received, and insert findings into existing Microsoft Access Database.
+Email parser for Uneda Member List Emails. Runs every two minutes (approximately), or every hour if after business hours, to parse data from emails received and insert findings into existing Microsoft Access Database.
 
 ##Requirements to Run
 

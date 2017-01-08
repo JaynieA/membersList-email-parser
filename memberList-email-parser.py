@@ -9,9 +9,6 @@ import pyodbc
 import time
 from connection import *
 
-#Create an IMAP4 instance (with SSL for security) that connects to the gmail server
-M = imaplib.IMAP4_SSL('imap.gmail.com')
-
 ##FUNCTIONS
 #initializes app
 def init():
@@ -393,6 +390,8 @@ def retrieveEmails(host):
 #Initializes the app
 while True:
     print('App Initialized...\n')
+    #Create an IMAP4 instance (with SSL for security) that connects to the gmail server
+    M = imaplib.IMAP4_SSL('imap.gmail.com')
     #initialize login and parsing
     init()
     #delete all emails in Inbox
@@ -401,7 +400,5 @@ while True:
     deleteAllEmails(EMAIL_FOLDER)
     #log out of email
     M.logout()
-    #re-initialize class to all reconnect on next login
-    M = imaplib.IMAP4_SSL('imap.gmail.com')
     #Run Every 2 minutes if between 7:01AM-5:59PM, else run every 90 minutes
     time.sleep(determineSleepTime())

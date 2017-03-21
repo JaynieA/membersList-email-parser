@@ -1,9 +1,9 @@
 
-#Description
+# Description
 
 Email parser for Uneda Member List Emails. Runs every two minutes (approximately), or every hour if after business hours, to parse data from emails received and insert findings into existing Microsoft Access Database.
 
-##Requirements to Run
+## Requirements to Run
 
 * File named connection.py in root directory, containing:
 
@@ -21,7 +21,7 @@ connStr = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=yourDatabaseNa
   <img src="email-parser-erd.png?raw=true" alt="ERD"/>
 </p>
 
-##Technologies:
+## Technologies:
 
 * Python3
 * pyodbc
